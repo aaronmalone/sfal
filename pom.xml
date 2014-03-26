@@ -14,7 +14,7 @@
 
 		<dependency>
 			<groupId>edu.osu.lapis</groupId>
-			<artifactId>lapis-core</artifactId>
+			<artifactId>lapis-java-client</artifactId>
 			<version>0.4.1</version>
 		</dependency>
 
@@ -31,7 +31,13 @@
 			<version>4.11</version>
 			<scope>test</scope>
 		</dependency>
-		
+
+		<dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-all</artifactId>
+			<version>1.9.5</version>
+		</dependency>
+
 		<dependency>
 			<groupId>com.typesafe.akka</groupId>
 			<artifactId>akka-testkit_2.10</artifactId>
@@ -54,8 +60,8 @@
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.1</version>
 				<configuration>
-					<source>1.7</source>
-					<target>1.7</target>
+					<source>1.8</source>
+					<target>1.8</target>
 				</configuration>
 			</plugin>
 

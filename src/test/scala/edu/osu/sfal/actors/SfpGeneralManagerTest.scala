@@ -1,12 +1,14 @@
 package edu.osu.sfal.actors
 
 import org.scalatest.WordSpec
-import edu.osu.sfal.messages.{SfApplicationRequest, NewSfp}
+import edu.osu.sfal.messages.SfApplicationRequest
 import akka.testkit.TestActorRef
 import akka.actor.{ActorRef, Props, ActorSystem}
 import edu.osu.sfal.util.{SfpName, SimulationFunctionName}
 import org.apache.commons.lang3.RandomStringUtils
-import scala.collection.immutable.HashMap
+import edu.osu.sfal.messages.sfp.NewSfp
+import java.util.HashMap
+import com.google.common.collect.Sets
 
 class SfpGeneralManagerTest extends WordSpec {
 
@@ -50,7 +52,7 @@ class SfpGeneralManagerTest extends WordSpec {
     "it receives a " + classOf[SfApplicationRequest].getName() + " message, " should {
       "forward to the appropriate SfpPoolManager" in {
         val fxt = newFixtureWithSfpPool()
-        val request = new SfApplicationRequest(fxt.simulationFunctionName, 0, new java.util.HashMap())
+        val request = new SfApplicationRequest(fxt.simulationFunctionName, 0, new HashMap(), Sets.newHashSet())
         fxt.testActorRef ! request
         val sfpPoolManager = getSfpPoolManagerActorRef(fxt)
         assert(request === getLastMessageReceivedByActor(sfpPoolManager, system))

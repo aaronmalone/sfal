@@ -1,15 +1,11 @@
 package edu.osu.sfal.messages;
 
+import edu.osu.sfal.messages.sfp.SfpStatusMessage;
 import edu.osu.sfal.util.SfpName;
+import edu.osu.sfal.util.SimulationFunctionName;
 
-public class SfpNotBusy {
-	private final SfpName sfpName;
-
-	public SfpNotBusy(SfpName sfpName) {
-		this.sfpName = sfpName;
-	}
-
-	public SfpName getSfpName() {
-		return sfpName;
+public class SfpNotBusy extends SfpStatusMessage {
+	public SfpNotBusy(SimulationFunctionName simulationFunctionName, SfpName sfpName) {
+		super(simulationFunctionName, sfpName);
 	}
 }

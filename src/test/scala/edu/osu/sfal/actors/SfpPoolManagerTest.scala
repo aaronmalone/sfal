@@ -1,12 +1,14 @@
 package edu.osu.sfal.actors
 
 import org.scalatest.WordSpec
-import edu.osu.sfal.messages.{SfpNotBusy, NewSfp, SfApplicationRequest}
+import edu.osu.sfal.messages.{SfpNotBusy, SfApplicationRequest}
 import akka.testkit.{TestProbe, TestActorRef}
 import akka.actor._
-import java.util
+import java.util.HashMap
 import org.apache.commons.lang3.RandomStringUtils
 import edu.osu.sfal.util.{SfpName, SimulationFunctionName}
+import edu.osu.sfal.messages.sfp.NewSfp
+import com.google.common.collect.Sets
 
 class SfpPoolManagerTest extends WordSpec {
 
@@ -18,7 +20,7 @@ class SfpPoolManagerTest extends WordSpec {
     val simulationFunctionName = new SimulationFunctionName(RandomStringUtils.randomAlphanumeric(7))
     testActorRef ! simulationFunctionName //tell the actor was SF it handles
     val sfpName = new SfpName(RandomStringUtils.randomAlphanumeric(7))
-    val sfApplicationRequest = new SfApplicationRequest(simulationFunctionName, 0, new util.HashMap())
+    val sfApplicationRequest = new SfApplicationRequest(simulationFunctionName, 0, new HashMap(), Sets.newHashSet())
     val testProbe = TestProbe.apply()(system)
     val newSfp = new NewSfp(simulationFunctionName, sfpName)
   }
@@ -73,7 +75,7 @@ class SfpPoolManagerTest extends WordSpec {
     "it receives a " + classOf[SfpNotBusy].getName + " message, " should {
       "dispatch a request, if one is enqueued" in {
         val fxt = newTestFixtureWithRegisteredSfp()
-        val sfpNotBusy = new SfpNotBusy(fxt.sfpName)
+        val sfpNotBusy = new SfpNotBusy(fxt.simulationFunctionName, fxt.sfpName)
 
         //manually enqueue request
         fxt.underlyingActor.requestQueue.add(fxt.sfApplicationRequest)
@@ -89,7 +91,7 @@ class SfpPoolManagerTest extends WordSpec {
         //manually mark as busy
         fxt.underlyingActor.sfpBusyMap.put(fxt.sfpName, true)
 
-        fxt.testActorRef ! new SfpNotBusy(fxt.sfpName)
+        fxt.testActorRef ! new SfpNotBusy(fxt.simulationFunctionName, fxt.sfpName)
         assert(false === fxt.underlyingActor.sfpBusyMap.get(fxt.sfpName))
       }
     }

@@ -2,9 +2,7 @@ package edu.osu.sfal.actors;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.actor.UntypedActor;
-import akka.japi.Creator;
-import edu.osu.sfal.messages.NewSfp;
+import edu.osu.sfal.messages.sfp.NewSfp;
 import edu.osu.sfal.messages.SfApplicationRequest;
 import edu.osu.sfal.util.SimulationFunctionName;
 

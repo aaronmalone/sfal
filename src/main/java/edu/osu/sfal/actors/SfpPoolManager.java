@@ -1,17 +1,18 @@
 package edu.osu.sfal.actors;
 
-import java.util.*;
-
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import com.google.common.collect.Maps;
-import edu.osu.sfal.messages.NewSfp;
+import edu.osu.sfal.messages.sfp.NewSfp;
 import edu.osu.sfal.messages.SfApplicationRequest;
 import edu.osu.sfal.messages.SfpNotBusy;
 import edu.osu.sfal.util.SfpName;
 import edu.osu.sfal.util.SimulationFunctionName;
 import org.apache.commons.lang3.Validate;
-import akka.actor.UntypedActor;
+
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.Queue;
 
 public class SfpPoolManager extends LastMessageReceivedActor {
 
@@ -41,10 +42,17 @@ public class SfpPoolManager extends LastMessageReceivedActor {
 	private void handleNewSfpRegistration(NewSfp newSfp) {
 		Validate.isTrue(simulationFunctionName.equals(newSfp.getSimulationFunctionName()));
 		SfpName sfpName = newSfp.getSfpName();
-		ActorRef actorRef = getContext().actorOf(Props.create(SfpActor.class), sfpName.getName());
+		ActorRef actorRef = createAndInitializeActor(sfpName);
 		sfpActorMap.put(sfpName, actorRef);
 		sfpBusyMap.put(sfpName, NOT_BUSY);
 		handleSfpNotBusy(sfpName);
+	}
+
+	private ActorRef createAndInitializeActor(SfpName sfpName) {
+		Props props = Props.create(SfpActor.class);
+		ActorRef actorRef = getContext().actorOf(props, sfpName.getName());
+		actorRef.tell(simulationFunctionName, getSelf()); //init with simulationFunctionName
+		return actorRef;
 	}
 
 	/**

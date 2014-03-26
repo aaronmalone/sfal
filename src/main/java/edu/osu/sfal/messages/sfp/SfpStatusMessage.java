@@ -1,14 +1,13 @@
-package edu.osu.sfal.messages;
+package edu.osu.sfal.messages.sfp;
 
 import edu.osu.sfal.util.SfpName;
 import edu.osu.sfal.util.SimulationFunctionName;
 
-public class NewSfp{
-
+public abstract class SfpStatusMessage {
 	private final SimulationFunctionName simulationFunctionName;
 	private final SfpName sfpName;
 
-	public NewSfp(SimulationFunctionName simulationFunctionName, SfpName sfpName) {
+	public SfpStatusMessage(SimulationFunctionName simulationFunctionName, SfpName sfpName) {
 		this.simulationFunctionName = simulationFunctionName;
 		this.sfpName = sfpName;
 	}

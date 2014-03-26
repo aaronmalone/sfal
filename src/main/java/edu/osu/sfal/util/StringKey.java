@@ -22,7 +22,7 @@ public class StringKey {
 
 	@Override
 	public boolean equals(Object obj) {
-		if(obj instanceof StringKey) {
+		if(getClass().isInstance(obj)) {
             return this.name.equals(((StringKey) obj).getName());
         } else {
             return false;
