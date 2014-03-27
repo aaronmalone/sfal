@@ -29,6 +29,7 @@ public class JsonEntityExtractor extends Filter {
 
 	@Override
 	protected int beforeHandle(Request request, Response response) {
+		System.out.println("json entity extractor before handle");
 		if(request.getEntity().getSize() != 0) {
 			extractAndSetJsonEntityAttribute(request);
 		}

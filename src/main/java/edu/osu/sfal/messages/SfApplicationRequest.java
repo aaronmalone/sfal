@@ -1,12 +1,10 @@
 package edu.osu.sfal.messages;
 
-import edu.osu.sfal.rest.IncomingRequest;
 import edu.osu.sfal.util.SimulationFunctionName;
-import scala.concurrent.Promise;
-import scala.concurrent.Promise$;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 public class SfApplicationRequest {
 	
@@ -14,20 +12,21 @@ public class SfApplicationRequest {
 	private final int timestep;
 	private final Map<String, Object> inputs;
 	private final Set<String> outputNames;
-	private final Promise<SfApplicationResult> promise;
+	private final CompletableFuture<SfApplicationResult> completableFuture;
 
 	public SfApplicationRequest(SimulationFunctionName simulationFunctionName, int timestep,
 			Map<String, Object> inputs, Set<String> outputNames) {
-		this(simulationFunctionName, timestep, inputs, outputNames, getNewPromise());
+		this(simulationFunctionName, timestep, inputs, outputNames, new CompletableFuture<>());
 	}
 
 	public SfApplicationRequest(SimulationFunctionName simulationFunctionName, int timestep,
-			Map<String, Object> inputs, Set<String> outputNames, Promise<SfApplicationResult> promise) {
+			Map<String, Object> inputs, Set<String> outputNames,
+			CompletableFuture<SfApplicationResult> completableFuture) {
 		this.simulationFunctionName = simulationFunctionName;
 		this.timestep = timestep;
 		this.inputs = inputs;
 		this.outputNames = outputNames;
-		this.promise = promise;
+		this.completableFuture = completableFuture;
 	}
 
 	public SimulationFunctionName getSimulationFunctionName() {
@@ -42,13 +41,11 @@ public class SfApplicationRequest {
 		return inputs;
 	}
 
-	public Promise<SfApplicationResult> getPromise() {
-		return promise;
+	public CompletableFuture<SfApplicationResult> getCompletableFuture() {
+		return completableFuture;
 	}
 
-
-	private static Promise<SfApplicationResult> getNewPromise() {
-		//why use this method? Java was struggling with inferring the type of Promise$.MODULE$.apply()
-		return Promise$.MODULE$.apply();
+	public Set<String> getOutputNames() {
+		return outputNames;
 	}
 }
