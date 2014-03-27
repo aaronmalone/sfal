@@ -4,6 +4,7 @@ import com.google.common.collect.Maps;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import edu.osu.sfal.data.SfalDao;
+import edu.osu.sfal.data.SfalDaoInMemoryImpl;
 import edu.osu.sfal.messages.SfApplicationRequest;
 import edu.osu.sfal.messages.SfApplicationResult;
 import edu.osu.sfal.util.MessageDispatcher;
@@ -29,21 +30,12 @@ public class IncomingRestletRequestTest {
 		INPUT_NAME = "input1",
 		SIMULATION_FUNCTION_NAME = "simFunctionName";
 
-	private final Map<String, Object> savedDataMap = Maps.newHashMap();
-	private final AtomicReference<SfApplicationRequest> requestReference = new AtomicReference<>();
-
-	@Before
-	public void setUp() {
-		savedDataMap.clear();
-		savedDataMap.put(DATA_STORE_KEY_FOR_INPUT, STORED_INPUT_VALUE);
-		requestReference.set(null);
-	}
-
 	@Test
 	public void testHandle() {
 		Request request = new Request(Method.POST, "resource");
 		JsonElement jsonElement = getJsonElement();
 		request.getAttributes().put(JsonEntityExtractor.ENTITY_ATTRIBUTE_NAME, jsonElement);
+		final AtomicReference<SfApplicationRequest> requestReference = new AtomicReference<>();
 		MessageDispatcher dispatcher = new MessageDispatcher<SfApplicationRequest>() {
 			@Override public void dispatch(SfApplicationRequest sfAppReq) {
 				requestReference.set(sfAppReq);
@@ -51,14 +43,8 @@ public class IncomingRestletRequestTest {
 				sfAppReq.getCompletableFuture().complete(result);
 			}
 		};
-		SfalDao sfalDao = new SfalDao() {
-			@Override public Object lookup(String key) {
-				return savedDataMap.get(key);
-			}
-			@Override public void save(String key, Object value) {
-				savedDataMap.put(key, value);
-			}
-		};
+		SfalDao sfalDao = new SfalDaoInMemoryImpl();
+		sfalDao.save(DATA_STORE_KEY_FOR_INPUT, STORED_INPUT_VALUE);
 		IncomingRequestRestlet restlet = new IncomingRequestRestlet(sfalDao, dispatcher, 10);
 		restlet.handle(request);
 		SfApplicationRequest sfAppRequest = requestReference.get();
@@ -68,8 +54,8 @@ public class IncomingRestletRequestTest {
 		Assert.assertEquals(STORED_INPUT_VALUE, sfAppRequest.getInputs().get(INPUT_NAME));
 		Assert.assertEquals(1, sfAppRequest.getOutputNames().size());
 		Assert.assertTrue(sfAppRequest.getOutputNames().contains(OUTPUT_NAME));
-		Assert.assertTrue(savedDataMap.containsKey(DATA_STORE_KEY_FOR_OUTPUT));
-		Assert.assertEquals(OUTPUT_VALUE_FOR + OUTPUT_NAME, savedDataMap.get(DATA_STORE_KEY_FOR_OUTPUT));
+		Object savedOutput = sfalDao.lookup(DATA_STORE_KEY_FOR_OUTPUT);
+		Assert.assertEquals(OUTPUT_VALUE_FOR + OUTPUT_NAME, savedOutput);
 	}
 
 	private JsonElement getJsonElement() {
