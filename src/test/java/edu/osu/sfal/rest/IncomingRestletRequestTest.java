@@ -3,6 +3,7 @@ package edu.osu.sfal.rest;
 import com.google.common.collect.Maps;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import edu.osu.sfal.data.SfalDao;
 import edu.osu.sfal.messages.SfApplicationRequest;
 import edu.osu.sfal.messages.SfApplicationResult;
 import edu.osu.sfal.util.MessageDispatcher;
@@ -50,9 +51,15 @@ public class IncomingRestletRequestTest {
 				sfAppReq.getCompletableFuture().complete(result);
 			}
 		};
-		IncomingRequestRestlet restlet = new IncomingRequestRestlet(
-				key -> savedDataMap.get(key), dispatcher,
-				(key, value) -> savedDataMap.put(key, value), 10);
+		SfalDao sfalDao = new SfalDao() {
+			@Override public Object lookup(String key) {
+				return savedDataMap.get(key);
+			}
+			@Override public void save(String key, Object value) {
+				savedDataMap.put(key, value);
+			}
+		};
+		IncomingRequestRestlet restlet = new IncomingRequestRestlet(sfalDao, dispatcher, 10);
 		restlet.handle(request);
 		SfApplicationRequest sfAppRequest = requestReference.get();
 		Assert.assertEquals(SIMULATION_FUNCTION_NAME, sfAppRequest.getSimulationFunctionName().getName());
