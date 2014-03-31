@@ -9,6 +9,8 @@ import org.apache.commons.lang3.RandomStringUtils
 import edu.osu.sfal.messages.sfp.NewSfp
 import java.util.HashMap
 import com.google.common.collect.Sets
+import akka.japi.Creator
+import edu.osu.sfal.actors.creators.{SfpPoolManagerCreatorFactory, SfpActorCreatorFactory}
 
 class SfpGeneralManagerTest extends WordSpec {
 
@@ -17,11 +19,15 @@ class SfpGeneralManagerTest extends WordSpec {
   val system = ActorSystem.create("test")
 
 
+
   class Fixture() {
-    val testActorRef = TestActorRef.create[SfpGeneralManager](system, Props[SfpGeneralManager]())
+    val simulationFunctionName = new SimulationFunctionName(randomString())
+    private val sfpActorCreatorFactory = new SfpActorCreatorFactory(null, simulationFunctionName)
+    private val sfpPoolManagerCreatorFactory = new SfpPoolManagerCreatorFactory(null)
+    private val props = Props(classOf[SfpGeneralManager], sfpPoolManagerCreatorFactory)
+    val testActorRef = TestActorRef.create[SfpGeneralManager](system, props)
     val sfpGeneralManager = testActorRef.underlyingActor
     assert(sfpGeneralManager.sfpPoolMap.isEmpty)
-    val simulationFunctionName = new SimulationFunctionName(randomString())
     val sfpName = new SfpName(randomString())
     val newSfp = new NewSfp(simulationFunctionName, sfpName)
   }

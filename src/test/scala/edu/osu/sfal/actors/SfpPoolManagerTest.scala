@@ -9,15 +9,18 @@ import org.apache.commons.lang3.RandomStringUtils
 import edu.osu.sfal.util.{SfpName, SimulationFunctionName}
 import edu.osu.sfal.messages.sfp.NewSfp
 import com.google.common.collect.Sets
+import edu.osu.sfal.actors.creators.SfpActorCreatorFactory
 
 class SfpPoolManagerTest extends WordSpec {
 
   val system = ActorSystem.create("testSystem")
 
   class Fixture {
-    val testActorRef = TestActorRef.create[SfpPoolManager](system, Props[SfpPoolManager])
-    val underlyingActor: SfpPoolManager = testActorRef.underlyingActor
     val simulationFunctionName = new SimulationFunctionName(RandomStringUtils.randomAlphanumeric(7))
+    private val actorCreatorFactory = new SfpActorCreatorFactory(null, simulationFunctionName)
+    private val props = Props(classOf[SfpPoolManager], simulationFunctionName, actorCreatorFactory)
+    val testActorRef = TestActorRef.create[SfpPoolManager](system, props)
+    val underlyingActor: SfpPoolManager = testActorRef.underlyingActor
     testActorRef ! simulationFunctionName //tell the actor was SF it handles
     val sfpName = new SfpName(RandomStringUtils.randomAlphanumeric(7))
     val sfApplicationRequest = new SfApplicationRequest(simulationFunctionName, 0, new HashMap(), Sets.newHashSet())

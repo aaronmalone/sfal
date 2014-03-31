@@ -2,8 +2,10 @@ package edu.osu.sfal.actors;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import edu.osu.sfal.messages.sfp.NewSfp;
+import akka.japi.Creator;
+import edu.osu.sfal.actors.creators.SfpPoolManagerCreatorFactory;
 import edu.osu.sfal.messages.SfApplicationRequest;
+import edu.osu.sfal.messages.sfp.NewSfp;
 import edu.osu.sfal.util.SimulationFunctionName;
 
 import java.util.HashMap;
@@ -12,6 +14,12 @@ import java.util.Map;
 public class SfpGeneralManager extends LastMessageReceivedActor {
 
 	final Map<SimulationFunctionName, ActorRef> sfpPoolMap = new HashMap<>();
+
+	private final SfpPoolManagerCreatorFactory sfpPoolManagerCreatorFactory;
+
+	public SfpGeneralManager(SfpPoolManagerCreatorFactory sfpPoolManagerCreatorFactory) {
+		this.sfpPoolManagerCreatorFactory = sfpPoolManagerCreatorFactory;
+	}
 
 	@Override
 	public void onReceiveImpl(Object message) throws Exception {
@@ -44,8 +52,9 @@ public class SfpGeneralManager extends LastMessageReceivedActor {
 	}
 
 	private ActorRef createAndStoreSfpPoolManagerActor(SimulationFunctionName sfName) {
-		ActorRef ref = getContext().actorOf(Props.create(SfpPoolManager.class), sfName.getName());
-		ref.tell(sfName, getSender()); //initialize with SF name
+		Creator<SfpPoolManager> creator = sfpPoolManagerCreatorFactory.createCreator(sfName);
+		Props props = Props.create(SfpPoolManager.class, creator);
+		ActorRef ref = getContext().actorOf(props, sfName.getName());
 		sfpPoolMap.put(sfName, ref);
 		return ref;
 	}

@@ -3,9 +3,10 @@ package edu.osu.sfal.actors;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import com.google.common.collect.Maps;
-import edu.osu.sfal.messages.sfp.NewSfp;
+import edu.osu.sfal.actors.creators.SfpActorCreatorFactory;
 import edu.osu.sfal.messages.SfApplicationRequest;
 import edu.osu.sfal.messages.SfpNotBusy;
+import edu.osu.sfal.messages.sfp.NewSfp;
 import edu.osu.sfal.util.SfpName;
 import edu.osu.sfal.util.SimulationFunctionName;
 import org.apache.commons.lang3.Validate;
@@ -13,22 +14,31 @@ import org.apache.commons.lang3.Validate;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class SfpPoolManager extends LastMessageReceivedActor {
 
+	private static AtomicInteger sfpActorCounter = new AtomicInteger();
+
 	final boolean BUSY = true, NOT_BUSY = false;
 
-	SimulationFunctionName simulationFunctionName;
+	private final SimulationFunctionName simulationFunctionName; //TODO CONSTRUCTED INSTEAD OF MESSAGED
+	private final SfpActorCreatorFactory sfpActorCreatorFactory;
 
 	final Queue<SfApplicationRequest> requestQueue = new LinkedList<>();
 	final Map<SfpName, ActorRef> sfpActorMap = Maps.newHashMap();
 	final Map<SfpName, Boolean> sfpBusyMap = Maps.newHashMap();
 
+	public SfpPoolManager(
+			SimulationFunctionName simulationFunctionName,
+			SfpActorCreatorFactory actorCreatorFactory) {
+		this.simulationFunctionName = simulationFunctionName;
+		this.sfpActorCreatorFactory = actorCreatorFactory;
+	}
+
 	@Override
 	public void onReceiveImpl(Object message) throws Exception {
-		if(message instanceof SimulationFunctionName) {
-			setSimulationFunctionName((SimulationFunctionName) message);
-		} else if(message instanceof NewSfp) {
+		if(message instanceof NewSfp) {
 			handleNewSfpRegistration((NewSfp) message);
 		} else if(message instanceof SfApplicationRequest) {
 			handleSfApplicationRequest((SfApplicationRequest) message);
@@ -49,8 +59,9 @@ public class SfpPoolManager extends LastMessageReceivedActor {
 	}
 
 	private ActorRef createAndInitializeActor(SfpName sfpName) {
-		Props props = Props.create(SfpActor.class);
-		ActorRef actorRef = getContext().actorOf(props, sfpName.getName());
+		Props props = Props.create(SfpActor.class, sfpActorCreatorFactory.createCreator(sfpName));
+		String name = sfpName.getName() + "_" + sfpActorCounter.getAndIncrement();
+		ActorRef actorRef = getContext().actorOf(props, name);
 		actorRef.tell(simulationFunctionName, getSelf()); //init with simulationFunctionName
 		return actorRef;
 	}
@@ -126,10 +137,6 @@ public class SfpPoolManager extends LastMessageReceivedActor {
 
 	private void setActorBusyness(SfpName sfpName, boolean busy) {
 		this.sfpBusyMap.put(sfpName, busy);
-	}
-
-	private void setSimulationFunctionName(SimulationFunctionName simulationFunctionName) {
-		this.simulationFunctionName = simulationFunctionName;
 	}
 
 	private void validateSimFunctionName(SimulationFunctionName simFuncName) {
