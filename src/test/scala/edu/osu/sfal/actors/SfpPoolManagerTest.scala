@@ -1,15 +1,16 @@
 package edu.osu.sfal.actors
 
 import edu.osu.sfal.messages.{SfpNotBusy, SfApplicationRequest}
-import akka.testkit.TestActorRef
+import akka.testkit.{TestProbe, TestActorRef}
 import akka.actor._
 import java.util.HashMap
-import edu.osu.sfal.messages.sfp.NewSfp
+import edu.osu.sfal.messages.sfp.{HeartbeatFailed, NewSfp}
 import com.google.common.collect.Sets
+import edu.osu.sfal.util.SfpName
 
 class SfpPoolManagerTest extends ActorTest {
 
-  class SfpPoolManagerTestFixture extends ActorTestFixture {
+  class SfpPoolManagerTestFixture extends SfpActorTestFixture {
     private val props = Props(classOf[SfpPoolManager], simulationFunctionName, sfpActorCreatorFactory)
     val testActorRef = TestActorRef.create[SfpPoolManager](system, props)
     val sfpPoolManager = testActorRef.underlyingActor
@@ -25,6 +26,35 @@ class SfpPoolManagerTest extends ActorTest {
           testActorRef ! newSfp
           assert(sfpPoolManager.sfpActorMap.get(sfpName).isInstanceOf[ActorRef])
           assert(sfpPoolManager.sfpBusyMap.containsKey(sfpName))
+        }
+      }
+    }
+
+    "it receives a " + classOf[HeartbeatFailed].getName + " message," should {
+      "remove the corresponding SfpActor" in {
+        new SfpPoolManagerTestFixture() {
+          testActorRef ! newSfp //register the SFP
+          assert(sfpPoolManager.sfpActorMap.get(sfpName).isInstanceOf[ActorRef])
+
+          //add another SFP
+          val anotherNewSfp: NewSfp = new NewSfp(simulationFunctionName, new SfpName("anotherSFP"))
+          testActorRef ! anotherNewSfp
+          assert(2 == sfpPoolManager.sfpActorMap.size())
+
+          //send heartbeat failed for first SFP
+          testActorRef ! new HeartbeatFailed(simulationFunctionName, sfpName)
+          assert(!sfpPoolManager.sfpActorMap.containsKey(sfpName))
+          assert(!sfpPoolManager.sfpBusyMap.containsKey(sfpName))
+          assert(1 == sfpPoolManager.sfpActorMap.size())
+        }
+      }
+      "shutdown if the failed SFP is the last SFP in the pool" in {
+        new SfpPoolManagerTestFixture() {
+          testActorRef ! newSfp //register the SFP
+          val probe = TestProbe()
+          probe watch testActorRef
+          testActorRef ! new HeartbeatFailed(simulationFunctionName, sfpName)
+          probe.expectTerminated(testActorRef)
         }
       }
     }

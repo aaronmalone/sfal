@@ -8,7 +8,7 @@ import org.mockito.Matchers._
 import org.mockito.Matchers
 import edu.osu.sfal.actors.creators.SfpActorCreatorFactory
 
-class ActorTestFixture {
+class SfpActorTestFixture {
   val simulationFunctionName = new SimulationFunctionName(randomString())
   val sfpName = new SfpName(randomString())
   val mockLapisApi = getMockLapisApi(simulationFunctionName)
