@@ -9,7 +9,7 @@ import java.util.HashMap
 import com.google.common.collect.Sets
 import edu.osu.sfal.actors.creators.SfpPoolManagerCreatorFactory
 
-class SfpGeneralManagerTest extends ActorTest {
+class SfpGeneralManagerTest extends SfpActorTestBase {
 
   class SfpGeneralManagerTestFixture extends SfpActorTestFixture {
     private val sfpPoolManagerCreatorFactory = new SfpPoolManagerCreatorFactory(mockLapisApi)
