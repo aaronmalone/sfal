@@ -5,10 +5,12 @@ import org.apache.commons.lang3.Validate;
 public class StringKey {
 	
 	private final String name;
+	private final String toStringValue;
 	
 	public StringKey(String name) {
 		Validate.notNull(name, "name cannot be null");
 		this.name = name;
+		toStringValue = getClass().getSimpleName() + "(" + name + ")";
 	}
 
 	public String getName() {
@@ -31,6 +33,6 @@ public class StringKey {
 
 	@Override
 	public String toString() {
-		return name;
+		return this.toStringValue;
 	}
 }

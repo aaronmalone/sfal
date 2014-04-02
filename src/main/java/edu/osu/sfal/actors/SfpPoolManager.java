@@ -2,10 +2,12 @@ package edu.osu.sfal.actors;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.japi.Creator;
 import com.google.common.collect.Maps;
 import edu.osu.sfal.actors.creators.SfpActorCreatorFactory;
 import edu.osu.sfal.messages.SfApplicationRequest;
 import edu.osu.sfal.messages.SfpNotBusy;
+import edu.osu.sfal.messages.sfp.HeartbeatFailed;
 import edu.osu.sfal.messages.sfp.NewSfp;
 import edu.osu.sfal.util.SfpName;
 import edu.osu.sfal.util.SimulationFunctionName;
@@ -18,11 +20,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class SfpPoolManager extends LastMessageReceivedActor {
 
+	static final boolean BUSY = true, NOT_BUSY = false;
+
 	private static AtomicInteger sfpActorCounter = new AtomicInteger();
 
-	final boolean BUSY = true, NOT_BUSY = false;
-
-	private final SimulationFunctionName simulationFunctionName; //TODO CONSTRUCTED INSTEAD OF MESSAGED
+	private final SimulationFunctionName simulationFunctionName;
 	private final SfpActorCreatorFactory sfpActorCreatorFactory;
 
 	final Queue<SfApplicationRequest> requestQueue = new LinkedList<>();
@@ -44,6 +46,8 @@ public class SfpPoolManager extends LastMessageReceivedActor {
 			handleSfApplicationRequest((SfApplicationRequest) message);
 		} else if(message instanceof SfpNotBusy) {
 			handleSfpNotBusy(((SfpNotBusy) message).getSfpName());
+		} else if(message instanceof HeartbeatFailed) {
+			handleSfpHeartbeatFailed((HeartbeatFailed) message);
 		} else {
 			unhandled(message);
 		}
@@ -52,19 +56,17 @@ public class SfpPoolManager extends LastMessageReceivedActor {
 	private void handleNewSfpRegistration(NewSfp newSfp) {
 		Validate.isTrue(simulationFunctionName.equals(newSfp.getSimulationFunctionName()));
 		SfpName sfpName = newSfp.getSfpName();
-		ActorRef actorRef = createAndInitializeActor(sfpName);
+		ActorRef actorRef = createSfpActor(sfpName);
 		sfpActorMap.put(sfpName, actorRef);
 		sfpBusyMap.put(sfpName, NOT_BUSY);
 		handleSfpNotBusy(sfpName);
 	}
 
-	private ActorRef createAndInitializeActor(SfpName sfpName) {
-		Props props = Props.create(SfpActor.class, sfpActorCreatorFactory.createCreator(sfpName));
-		props = props.withDispatcher("pinned-dispatcher");
+	private ActorRef createSfpActor(SfpName sfpName) {
+		Creator<SfpActor> creator = sfpActorCreatorFactory.createCreator(sfpName);
+		Props props = Props.create(SfpActor.class, creator).withDispatcher("pinned-dispatcher");
 		String name = sfpName.getName() + "_" + sfpActorCounter.incrementAndGet();
-		ActorRef actorRef = getContext().actorOf(props, name);
-		actorRef.tell(simulationFunctionName, getSelf()); //init with simulationFunctionName
-		return actorRef;
+		return getContext().actorOf(props, name);
 	}
 
 	/**
@@ -93,7 +95,7 @@ public class SfpPoolManager extends LastMessageReceivedActor {
 	}
 
 	private void handlePoolEmptyOfSFPs(SfApplicationRequest sfApplicationRequest) {
-		throw new IllegalStateException("Received SfApplicationRequestWithResultPromise when pool of SFPs is empty.");
+		throw new IllegalStateException("Received SfApplicationRequest when pool of SFPs is empty.");
 	}
 
 	private boolean allPooledSFPsAreBusy() {
@@ -134,6 +136,25 @@ public class SfpPoolManager extends LastMessageReceivedActor {
 	private void dispatchToSfp(SfpName sfpName, SfApplicationRequest sfApplicationRequest) {
 		ActorRef actorRef = sfpActorMap.get(sfpName);
 		actorRef.tell(sfApplicationRequest, getSelf());
+	}
+
+	private void handleSfpHeartbeatFailed(HeartbeatFailed heartbeatFailedMsg) {
+		SfpName sfpName = heartbeatFailedMsg.getSfpName();
+		sfpActorMap.remove(sfpName);
+		sfpBusyMap.remove(sfpName);
+		if(sfpActorMap.isEmpty()) {
+			handleNoMoreSfpActors();
+		}
+	}
+
+	private void handleNoMoreSfpActors() {
+		String exceptionMessage = "There are no " + simulationFunctionName.getName()
+				+ " SFPs available to handle requests.";
+		Exception exception = new IllegalStateException(exceptionMessage);
+		while(!requestQueue.isEmpty()) {
+			requestQueue.poll().getCompletableFuture().completeExceptionally(exception);
+		}
+		getContext().stop(getSelf());
 	}
 
 	private void setActorBusyness(SfpName sfpName, boolean busy) {

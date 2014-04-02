@@ -7,22 +7,21 @@ import akka.actor._
 import java.util.HashMap
 import org.apache.commons.lang3.RandomStringUtils
 import edu.osu.sfal.util.{SfpName, SimulationFunctionName}
-import edu.osu.sfal.messages.sfp.NewSfp
+import edu.osu.sfal.messages.sfp.{HeartbeatFailed, NewSfp}
 import com.google.common.collect.Sets
 import edu.osu.sfal.actors.creators.SfpActorCreatorFactory
+import edu.osu.lapis.{Flags, LapisApi}
+import org.mockito.Mockito.mock
+import org.mockito.Mockito.when
 
 class SfpPoolManagerTest extends WordSpec {
 
   val system = ActorSystem.create("testSystem")
 
-  class Fixture {
-    val simulationFunctionName = new SimulationFunctionName(RandomStringUtils.randomAlphanumeric(7))
-    private val actorCreatorFactory = new SfpActorCreatorFactory(null, simulationFunctionName)
-    private val props = Props(classOf[SfpPoolManager], simulationFunctionName, actorCreatorFactory)
+  class SfpPoolManagerTestFixture extends ActorTestFixture {
+    private val props = Props(classOf[SfpPoolManager], simulationFunctionName, sfpActorCreatorFactory);
     val testActorRef = TestActorRef.create[SfpPoolManager](system, props)
     val underlyingActor: SfpPoolManager = testActorRef.underlyingActor
-    testActorRef ! simulationFunctionName //tell the actor was SF it handles
-    val sfpName = new SfpName(RandomStringUtils.randomAlphanumeric(7))
     val sfApplicationRequest = new SfApplicationRequest(simulationFunctionName, 0, new HashMap(), Sets.newHashSet())
     val testProbe = TestProbe.apply()(system)
     val newSfp = new NewSfp(simulationFunctionName, sfpName)
@@ -32,7 +31,7 @@ class SfpPoolManagerTest extends WordSpec {
 
     "it receives an " + classOf[NewSfp].getName + " message," should {
       "create an actor and store its ref internally" in {
-        val fxt = new Fixture()
+        val fxt = new SfpPoolManagerTestFixture()
         fxt.testActorRef ! fxt.newSfp
         val sfpPoolManager = fxt.underlyingActor
         val sfp = fxt.sfpName
@@ -68,7 +67,7 @@ class SfpPoolManagerTest extends WordSpec {
         assert(fxt.sfApplicationRequest === queueRef.poll())
       }
       "throw an exception when the pool is empty of SfpActors" in {
-        val fxt = new Fixture()
+        val fxt = new SfpPoolManagerTestFixture()
         intercept[IllegalStateException] {
           fxt.testActorRef.receive(fxt.sfApplicationRequest)
         }
@@ -100,7 +99,7 @@ class SfpPoolManagerTest extends WordSpec {
     }
   }
 
-  def verifyRequestReceivedBySfpActor(fxt: Fixture): Unit = {
+  def verifyRequestReceivedBySfpActor(fxt: SfpPoolManagerTestFixture): Unit = {
     val sfpActor = fxt.underlyingActor.sfpActorMap.get(fxt.sfpName)
     assert(sfpActor != null)
     val messageReceivedByActor = getLastMessageReceivedByActor(sfpActor, system)
@@ -108,7 +107,7 @@ class SfpPoolManagerTest extends WordSpec {
   }
 
   def newTestFixtureWithRegisteredSfp() = {
-    val fxt = new Fixture()
+    val fxt = new SfpPoolManagerTestFixture()
     fxt.testActorRef ! fxt.newSfp
     fxt
   }
