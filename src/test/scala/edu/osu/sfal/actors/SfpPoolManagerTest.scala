@@ -1,114 +1,99 @@
 package edu.osu.sfal.actors
 
-import org.scalatest.WordSpec
 import edu.osu.sfal.messages.{SfpNotBusy, SfApplicationRequest}
-import akka.testkit.{TestProbe, TestActorRef}
+import akka.testkit.TestActorRef
 import akka.actor._
 import java.util.HashMap
-import org.apache.commons.lang3.RandomStringUtils
-import edu.osu.sfal.util.{SfpName, SimulationFunctionName}
-import edu.osu.sfal.messages.sfp.{HeartbeatFailed, NewSfp}
+import edu.osu.sfal.messages.sfp.NewSfp
 import com.google.common.collect.Sets
-import edu.osu.sfal.actors.creators.SfpActorCreatorFactory
-import edu.osu.lapis.{Flags, LapisApi}
-import org.mockito.Mockito.mock
-import org.mockito.Mockito.when
 
-class SfpPoolManagerTest extends WordSpec {
-
-  val system = ActorSystem.create("testSystem")
+class SfpPoolManagerTest extends ActorTest {
 
   class SfpPoolManagerTestFixture extends ActorTestFixture {
-    private val props = Props(classOf[SfpPoolManager], simulationFunctionName, sfpActorCreatorFactory);
+    private val props = Props(classOf[SfpPoolManager], simulationFunctionName, sfpActorCreatorFactory)
     val testActorRef = TestActorRef.create[SfpPoolManager](system, props)
-    val underlyingActor: SfpPoolManager = testActorRef.underlyingActor
-    val sfApplicationRequest = new SfApplicationRequest(simulationFunctionName, 0, new HashMap(), Sets.newHashSet())
-    val testProbe = TestProbe.apply()(system)
+    val sfpPoolManager = testActorRef.underlyingActor
+    val sfApplicationRequest = new SfApplicationRequest(simulationFunctionName, 0,
+      new HashMap(), Sets.newHashSet())
     val newSfp = new NewSfp(simulationFunctionName, sfpName)
   }
 
   "An SfpPoolManager actor," when {
-
     "it receives an " + classOf[NewSfp].getName + " message," should {
       "create an actor and store its ref internally" in {
-        val fxt = new SfpPoolManagerTestFixture()
-        fxt.testActorRef ! fxt.newSfp
-        val sfpPoolManager = fxt.underlyingActor
-        val sfp = fxt.sfpName
-        assert(sfpPoolManager.sfpActorMap.get(sfp).isInstanceOf[ActorRef])
-        assert(sfpPoolManager.sfpBusyMap.containsKey(sfp))
+        new SfpPoolManagerTestFixture() {
+          testActorRef ! newSfp
+          assert(sfpPoolManager.sfpActorMap.get(sfpName).isInstanceOf[ActorRef])
+          assert(sfpPoolManager.sfpBusyMap.containsKey(sfpName))
+        }
       }
     }
 
     "it receives an " + classOf[SfApplicationRequest].getName + " message," should {
       "send the SfApplicationRequest to a free SfpActor, is one is available" in {
-        val fxt = newTestFixtureWithRegisteredSfp()
+        new SfpPoolManagerTestFixture() {
+          testActorRef ! newSfp //register the SFP
 
-        //ensure the underlying actor appears not busy
-        fxt.underlyingActor.sfpBusyMap.put(fxt.sfpName, false)
+          //ensure the underlying actor is not busy
+          assert(sfpPoolManager.sfpBusyMap.get(sfpName) === false)
 
-        fxt.testActorRef ! fxt.sfApplicationRequest
-        verifyRequestReceivedBySfpActor(fxt)
+          //replace underlying ActorRef with test probe
+          sfpPoolManager.sfpActorMap.put(sfpName, testActor)
 
-        val busy = fxt.underlyingActor.sfpBusyMap.get(fxt.sfpName)
-        assert(busy, "SfpActor should be marked as busy")
-        assert(fxt.underlyingActor.requestQueue.isEmpty)
+          testActorRef ! sfApplicationRequest
+          expectMsg(sfApplicationRequest)
+
+          val busyState = sfpPoolManager.sfpBusyMap.get(sfpName)
+          assert(busyState, "SfpActor should be marked busy.")
+          assert(sfpPoolManager.requestQueue.isEmpty)
+        }
       }
       "enqueue the SfpApplication if no free SfpActor instances are available" in {
-        val fxt = newTestFixtureWithRegisteredSfp()
+        new SfpPoolManagerTestFixture() {
+          testActorRef ! newSfp //register SFP
 
-        //make the actor look busy
-        fxt.underlyingActor.sfpBusyMap.put(fxt.sfpName, true)
-        val queueRef = fxt.underlyingActor.requestQueue
-        assert(queueRef.isEmpty)
+          //make the actor look busy
+          sfpPoolManager.sfpBusyMap.put(sfpName, true)
 
-        fxt.testActorRef ! fxt.sfApplicationRequest
-        assert(queueRef.size === 1)
-        assert(fxt.sfApplicationRequest === queueRef.poll())
+          val queue = sfpPoolManager.requestQueue
+          assert(queue.isEmpty)
+
+          testActorRef ! sfApplicationRequest
+          assert(queue.size === 1)
+          assert(sfApplicationRequest === queue.poll())
+        }
       }
       "throw an exception when the pool is empty of SfpActors" in {
-        val fxt = new SfpPoolManagerTestFixture()
-        intercept[IllegalStateException] {
-          fxt.testActorRef.receive(fxt.sfApplicationRequest)
+        new SfpPoolManagerTestFixture() {
+          intercept[IllegalStateException] {
+            testActorRef receive sfApplicationRequest
+          }
         }
       }
     }
 
     "it receives a " + classOf[SfpNotBusy].getName + " message, " should {
       "dispatch a request, if one is enqueued" in {
-        val fxt = newTestFixtureWithRegisteredSfp()
-        val sfpNotBusy = new SfpNotBusy(fxt.simulationFunctionName, fxt.sfpName)
+        new SfpPoolManagerTestFixture() {
+          testActorRef ! newSfp //register SFP
+          sfpPoolManager.sfpActorMap.put(sfpName, testActor) //replace actor ref w/ tes probe
+          sfpPoolManager.requestQueue.add(sfApplicationRequest) //manually enqueue request
 
-        //manually enqueue request
-        fxt.underlyingActor.requestQueue.add(fxt.sfApplicationRequest)
+          val sfpNotBusy = new SfpNotBusy(simulationFunctionName, sfpName)
+          testActorRef ! sfpNotBusy
 
-        fxt.testActorRef ! sfpNotBusy
-
-        verifyRequestReceivedBySfpActor(fxt)
-        assert(fxt.underlyingActor.sfpBusyMap.get(fxt.sfpName), "actor should be marked as busy")
+          expectMsg(sfApplicationRequest)
+          assert(sfpPoolManager.sfpBusyMap.get(sfpName), "actor should be marked busy")
+        }
       }
       "mark the actor as not busy if no request is enqueued" in {
-        val fxt = newTestFixtureWithRegisteredSfp()
-
-        //manually mark as busy
-        fxt.underlyingActor.sfpBusyMap.put(fxt.sfpName, true)
-
-        fxt.testActorRef ! new SfpNotBusy(fxt.simulationFunctionName, fxt.sfpName)
-        assert(false === fxt.underlyingActor.sfpBusyMap.get(fxt.sfpName))
+        new SfpPoolManagerTestFixture() {
+          testActorRef ! newSfp //register SFP
+          sfpPoolManager.sfpBusyMap.put(sfpName, true) //manually mark as busy
+          testActorRef ! new SfpNotBusy(simulationFunctionName, sfpName)
+          assert(false === sfpPoolManager.sfpBusyMap.get(sfpName))
+        }
       }
     }
-  }
-
-  def verifyRequestReceivedBySfpActor(fxt: SfpPoolManagerTestFixture): Unit = {
-    val sfpActor = fxt.underlyingActor.sfpActorMap.get(fxt.sfpName)
-    assert(sfpActor != null)
-    val messageReceivedByActor = getLastMessageReceivedByActor(sfpActor, system)
-    assert(fxt.sfApplicationRequest === messageReceivedByActor)
-  }
-
-  def newTestFixtureWithRegisteredSfp() = {
-    val fxt = new SfpPoolManagerTestFixture()
-    fxt.testActorRef ! fxt.newSfp
-    fxt
   }
 }
