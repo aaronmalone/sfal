@@ -8,9 +8,9 @@ import edu.osu.sfal.messages.sfp.{HeartbeatFailed, NewSfp}
 import com.google.common.collect.Sets
 import edu.osu.sfal.util.SfpName
 
-class SfpPoolManagerTest extends SfpActorTestBase {
+class SfpPoolManagerTest extends SfalActorTestBase {
 
-  class SfpPoolManagerTestFixture extends SfpActorTestFixture {
+  class SfpPoolManagerTestFixture extends SfalActorTestFixture {
     private val props = Props(classOf[SfpPoolManager], simulationFunctionName, sfpActorCreatorFactory)
     val testActorRef = TestActorRef.create[SfpPoolManager](system, props)
     val sfpPoolManager = testActorRef.underlyingActor

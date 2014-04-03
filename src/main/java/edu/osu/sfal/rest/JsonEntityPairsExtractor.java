@@ -56,34 +56,34 @@ public class JsonEntityPairsExtractor extends JsonEntityExtractor {
 		}
 	}
 
-    /**
-     * Transforms some JsonElement values to other types of Java objects.
-     * Strings, booleans, and numbers are transformed to java.lang.String values, primitive booleans, and
-     * java.lang.Number instances, respectively. JSON null values are transformed to null. JSON objects and JSON arrays
-     * are not transformed.
-     * <br><br>
-     * Note that this method does not change the state of any object passed as an argument. It returns corresponding
-     * objects for certain types of arguments.
-     */
-    private Object transformValue(JsonElement jsonElement) {
-        if(jsonElement.isJsonPrimitive()) {
-            return transformJsonPrimitive(jsonElement.getAsJsonPrimitive());
-        } else if(jsonElement.isJsonNull()) {
-            return null;
-        } else {
-            return jsonElement;
-        }
-    }
+	/**
+	 * Transforms some JsonElement values to other types of Java objects.
+	 * Strings, booleans, and numbers are transformed to java.lang.String values, primitive booleans, and
+	 * java.lang.Number instances, respectively. JSON null values are transformed to null. JSON objects and JSON arrays
+	 * are not transformed.
+	 * <br><br>
+	 * Note that this method does not change the state of any object passed as an argument. It returns corresponding
+	 * objects for certain types of arguments.
+	 */
+	private Object transformValue(JsonElement jsonElement) {
+		if(jsonElement.isJsonPrimitive()) {
+			return transformJsonPrimitive(jsonElement.getAsJsonPrimitive());
+		} else if(jsonElement.isJsonNull()) {
+			return null;
+		} else {
+			return jsonElement;
+		}
+	}
 
-    private Object transformJsonPrimitive(JsonPrimitive primitive) {
-        if(primitive.isString()) {
-            return primitive.getAsString();
-        } else if(primitive.isBoolean()) {
-            return primitive.getAsBoolean();
-        } else if(primitive.isNumber()) {
-            return primitive.getAsNumber();
-        } else {
-            throw new IllegalArgumentException("Unable to transform JSON primitive: " + primitive);
-        }
-    }
+	private Object transformJsonPrimitive(JsonPrimitive primitive) {
+		if(primitive.isString()) {
+			return primitive.getAsString();
+		} else if(primitive.isBoolean()) {
+			return primitive.getAsBoolean();
+		} else if(primitive.isNumber()) {
+			return primitive.getAsNumber();
+		} else {
+			throw new IllegalArgumentException("Unable to transform JSON primitive: " + primitive);
+		}
+	}
 }

@@ -3,6 +3,10 @@ package edu.osu.sfal.actors;
 import akka.actor.UntypedActor;
 import edu.osu.sfal.messages.GetLastMessage;
 
+/**
+ * Actor that allows retrieval of last message received. This feature should
+ * only be used in tests.
+ */
 public abstract class LastMessageReceivedActor extends UntypedActor {
 
 	private Object lastMessageReceived;

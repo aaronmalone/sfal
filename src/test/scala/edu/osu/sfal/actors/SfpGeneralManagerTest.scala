@@ -9,9 +9,9 @@ import java.util.HashMap
 import com.google.common.collect.Sets
 import edu.osu.sfal.actors.creators.SfpPoolManagerCreatorFactory
 
-class SfpGeneralManagerTest extends SfpActorTestBase {
+class SfpGeneralManagerTest extends SfalActorTestBase {
 
-  class SfpGeneralManagerTestFixture extends SfpActorTestFixture {
+  class SfpGeneralManagerTestFixture extends SfalActorTestFixture {
     private val sfpPoolManagerCreatorFactory = new SfpPoolManagerCreatorFactory(mockLapisApi)
     private val props = Props(classOf[SfpGeneralManager], sfpPoolManagerCreatorFactory)
     val testActorRef = TestActorRef.create[SfpGeneralManager](system, props)

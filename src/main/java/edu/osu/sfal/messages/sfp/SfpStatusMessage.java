@@ -19,4 +19,16 @@ public abstract class SfpStatusMessage {
 	public SfpName getSfpName() {
 		return sfpName;
 	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if(obj != null) {
+			SfpStatusMessage that = (SfpStatusMessage) obj;
+			return getClass().equals(obj.getClass())
+					&& this.simulationFunctionName.equals(that.simulationFunctionName)
+					&& this.sfpName.equals(that.sfpName);
+		} else {
+			return false;
+		}
+	}
 }
