@@ -6,7 +6,6 @@ import akka.actor.Props;
 import edu.osu.lapis.LapisApi;
 import edu.osu.lapis.network.NetworkChangeCallback;
 import edu.osu.sfal.actors.SfpGeneralManager;
-import edu.osu.sfal.actors.creators.SfpPoolManagerCreatorFactory;
 import edu.osu.sfal.data.SfalDao;
 import edu.osu.sfal.data.SfalDaoInMemoryImpl;
 import edu.osu.sfal.rest.IncomingRequestRestlet;
@@ -76,7 +75,7 @@ public class SfalConfiguration {
 	@Bean
 	public ActorRef getSfpGeneralManagerActorRef() {
 		ActorSystem system = getActorSystem();
-		Props props = Props.create(SfpGeneralManager.class, new SfpPoolManagerCreatorFactory(this.lapisApi));
+		Props props = Props.create(SfpGeneralManager.class, (Object[]) null); //TODO NOT CORRECT - FIX
 		return system.actorOf(props, "SfpGeneralManager");
 	}
 

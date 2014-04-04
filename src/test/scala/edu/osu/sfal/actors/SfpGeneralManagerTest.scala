@@ -7,13 +7,18 @@ import edu.osu.sfal.util.SfpName
 import edu.osu.sfal.messages.sfp.NewSfp
 import java.util.HashMap
 import com.google.common.collect.Sets
-import edu.osu.sfal.actors.creators.SfpPoolManagerCreatorFactory
+import edu.osu.sfal.actors.creators.PropsFactory
 
 class SfpGeneralManagerTest extends SfalActorTestBase {
 
   class SfpGeneralManagerTestFixture extends SfalActorTestFixture {
-    private val sfpPoolManagerCreatorFactory = new SfpPoolManagerCreatorFactory(mockLapisApi)
-    private val props = Props(classOf[SfpGeneralManager], sfpPoolManagerCreatorFactory)
+    private val sfpActorCreatorFactory = new TestSfpActorCreatorFactory(mockLapisApi, simulationFunctionName)
+    private val sfpPoolManagerPropsFactory = new PropsFactory[SfpPoolManager] {
+      override def createProps(cls: Class[SfpPoolManager], args: AnyRef*): Props = {
+        Props.create(cls, simulationFunctionName, sfpActorCreatorFactory)
+      }
+    }
+    private val props = Props(classOf[SfpGeneralManager], sfpPoolManagerPropsFactory)
     val testActorRef = TestActorRef.create[SfpGeneralManager](system, props)
     val sfpGeneralManager = testActorRef.underlyingActor
     assert(sfpGeneralManager.sfpPoolMap.isEmpty)
@@ -47,6 +52,8 @@ class SfpGeneralManagerTest extends SfalActorTestBase {
     "it receives a " + classOf[SfApplicationRequest].getName + " message, " should {
       "forward to the appropriate SfpPoolManager" in {
         new SfpGeneralManagerTestFixture() {
+          mockFlagCall("readyToCalculate", false)
+          mockFlagCall("finishedCalculating", true)
           testActorRef ! newSfp
           val request = new SfApplicationRequest(simulationFunctionName, 0, new HashMap(), Sets.newHashSet())
           testActorRef ! request

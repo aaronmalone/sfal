@@ -11,9 +11,6 @@ import edu.osu.sfal.messages.sfp.HeartbeatFailed
 
 class SfpActorTest extends SfalActorTestBase {
 
-  type Flag = Array[Double]
-  val FlagFalse: Flag = Flags.FLAG_VALUE_FALSE
-  val FlagTrue: Flag = Flags.FLAG_VALUE_TRUE
   val ReadyToCalculate = SfpActor.READY_TO_CALCULATE_VAR_NAME
   val FinishedCalculating = SfpActor.FINISHED_CALCULATING_VAR_NAME
 
@@ -25,12 +22,8 @@ class SfpActorTest extends SfalActorTestBase {
 
     expectMsg(SfpActor.HEARTBEAT_MSG) // heartbeat check triggered on construction
 
-    mockFlagCall(ReadyToCalculate, FlagFalse)
-    mockFlagCall(FinishedCalculating, FlagTrue)
-
-    def mockFlagCall(flagName: String, flagValue: Flag): Unit = {
-      when(mockLapisApi.getArrayOfDouble(nodeName, flagName)).thenReturn(flagValue)
-    }
+    mockFlagCall(ReadyToCalculate, false)
+    mockFlagCall(FinishedCalculating, true)
   }
 
   new SfpActorTestFixture() {
@@ -55,7 +48,7 @@ class SfpActorTest extends SfalActorTestBase {
         }
       }
       "set the readyToCalculate flag on the SFP" in {
-        verify(mockLapisApi).set(nodeName, ReadyToCalculate, FlagTrue)
+        verify(mockLapisApi).set(nodeName, ReadyToCalculate, Flags.FLAG_VALUE_TRUE)
       }
       "schedule a check on the calculation" in {
         expectMsg(SfpActor.CHECK_ON_CALCULATION)
@@ -65,7 +58,7 @@ class SfpActorTest extends SfalActorTestBase {
     "When an SFP actor receives a check-on-calculation message, it " should {
       "check whether the calculation has finished" in {
         reset(mockLapisApi)
-        mockFlagCall(FinishedCalculating, FlagFalse)
+        mockFlagCall(FinishedCalculating, false)
         testActorRef ! SfpActor.CHECK_ON_CALCULATION
         verify(mockLapisApi).getArrayOfDouble(nodeName, FinishedCalculating)
       }
@@ -88,7 +81,7 @@ class SfpActorTest extends SfalActorTestBase {
 
         expectMsg(SfpActor.CHECK_ON_CALCULATION)
         reset(mockLapisApi)
-        mockFlagCall(FinishedCalculating, FlagTrue)
+        mockFlagCall(FinishedCalculating, true)
 
         testActorRef ! SfpActor.CHECK_ON_CALCULATION
 
@@ -107,8 +100,6 @@ class SfpActorTest extends SfalActorTestBase {
       }
     }
   }
-
-  //todo DRY-out some of the mocking code for flag calls
 
   new SfpActorTestFixture() {
 

@@ -3,8 +3,7 @@ package edu.osu.sfal.actors;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
-import akka.japi.Creator;
-import edu.osu.sfal.actors.creators.SfpPoolManagerCreatorFactory;
+import edu.osu.sfal.actors.creators.PropsFactory;
 import edu.osu.sfal.messages.SfApplicationRequest;
 import edu.osu.sfal.messages.sfp.NewSfp;
 import edu.osu.sfal.util.SimulationFunctionName;
@@ -16,10 +15,10 @@ public class SfpGeneralManager extends UntypedActor {
 
 	final Map<SimulationFunctionName, ActorRef> sfpPoolMap = new HashMap<>();
 
-	private final SfpPoolManagerCreatorFactory sfpPoolManagerCreatorFactory;
+	private final PropsFactory<SfpPoolManager> sfpPoolManagerPropsFactory;
 
-	public SfpGeneralManager(SfpPoolManagerCreatorFactory sfpPoolManagerCreatorFactory) {
-		this.sfpPoolManagerCreatorFactory = sfpPoolManagerCreatorFactory;
+	public SfpGeneralManager(PropsFactory<SfpPoolManager> sfpPoolManagerPropsFactory) {
+		this.sfpPoolManagerPropsFactory = sfpPoolManagerPropsFactory;
 	}
 
 	@Override
@@ -53,8 +52,7 @@ public class SfpGeneralManager extends UntypedActor {
 	}
 
 	private ActorRef createAndStoreSfpPoolManagerActor(SimulationFunctionName sfName) {
-		Creator<SfpPoolManager> creator = sfpPoolManagerCreatorFactory.createCreator(sfName);
-		Props props = Props.create(SfpPoolManager.class, creator);
+		Props props = sfpPoolManagerPropsFactory.createProps(SfpPoolManager.class, sfName);
 		ActorRef ref = getContext().actorOf(props, sfName.getName());
 		sfpPoolMap.put(sfName, ref);
 		return ref;
