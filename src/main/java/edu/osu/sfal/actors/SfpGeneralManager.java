@@ -2,6 +2,7 @@ package edu.osu.sfal.actors;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.actor.UntypedActor;
 import akka.japi.Creator;
 import edu.osu.sfal.actors.creators.SfpPoolManagerCreatorFactory;
 import edu.osu.sfal.messages.SfApplicationRequest;
@@ -11,7 +12,7 @@ import edu.osu.sfal.util.SimulationFunctionName;
 import java.util.HashMap;
 import java.util.Map;
 
-public class SfpGeneralManager extends LastMessageReceivedActor {
+public class SfpGeneralManager extends UntypedActor {
 
 	final Map<SimulationFunctionName, ActorRef> sfpPoolMap = new HashMap<>();
 
@@ -22,7 +23,7 @@ public class SfpGeneralManager extends LastMessageReceivedActor {
 	}
 
 	@Override
-	public void onReceiveImpl(Object message) throws Exception {
+	public void onReceive(Object message) throws Exception {
 		if(message instanceof NewSfp) {
 			handleNewSfp((NewSfp) message);
 		} else if(message instanceof SfApplicationRequest) {

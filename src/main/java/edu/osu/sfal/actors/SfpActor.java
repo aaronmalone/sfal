@@ -1,7 +1,9 @@
 package edu.osu.sfal.actors;
 
 import akka.actor.ActorRef;
+import akka.actor.UntypedActor;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Objects;
 import edu.osu.lapis.Flags;
 import edu.osu.lapis.LapisApi;
 import edu.osu.sfal.messages.SfApplicationRequest;
@@ -18,7 +20,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-public class SfpActor extends LastMessageReceivedActor {
+public class SfpActor extends UntypedActor {
 
 	static String
 			READY_TO_CALCULATE_VAR_NAME = "readyToCalculate",
@@ -33,30 +35,23 @@ public class SfpActor extends LastMessageReceivedActor {
 	private final SfpName sfpName;
 	private final LapisApi lapisApi;
 
-	private final ActorRef checkOnCalcDestination;
-	private final ActorRef heartbeatCheckDestination;
-	private final ActorRef heartbeatFailedDestination;
+	@VisibleForTesting ActorRef checkOnCalcDestination;
+	@VisibleForTesting ActorRef heartbeatCheckDestination;
+	@VisibleForTesting ActorRef heartbeatFailedDestination;
 
 	private SfApplicationRequest currentRequest = null;
 
 	public SfpActor(SimulationFunctionName simulationFunctionName, SfpName sfpName, LapisApi lapisApi) {
-		this.simulationFunctionName = simulationFunctionName;
-		this.lapisApi = lapisApi;
-		this.sfpName = sfpName;
-		this.checkOnCalcDestination = getSelf();
-		this.heartbeatCheckDestination = getSelf();
-		this.heartbeatFailedDestination = getContext().parent();
-		scheduleHeartbeatCheck();
+		this(simulationFunctionName, sfpName, lapisApi, null);
 	}
 
-	@VisibleForTesting SfpActor(SimulationFunctionName simulationFunctionName, SfpName sfpName, LapisApi lapisApi,
-			ActorRef destination) {
-		this.simulationFunctionName = simulationFunctionName;
+	@VisibleForTesting SfpActor(SimulationFunctionName simFunName, SfpName sfp, LapisApi lapisApi, ActorRef ref) {
+		this.simulationFunctionName = simFunName;
 		this.lapisApi = lapisApi;
-		this.sfpName = sfpName;
-		this.checkOnCalcDestination = destination;
-		this.heartbeatCheckDestination = destination;
-		this.heartbeatFailedDestination = destination;
+		this.sfpName = sfp;
+		this.checkOnCalcDestination = Objects.firstNonNull(ref, getSelf());
+		this.heartbeatCheckDestination = Objects.firstNonNull(ref, getSelf());
+		this.heartbeatFailedDestination = Objects.firstNonNull(ref, getContext().parent());
 		scheduleHeartbeatCheck();
 	}
 
@@ -64,7 +59,7 @@ public class SfpActor extends LastMessageReceivedActor {
 		scheduleOnce(15 /*TODO MAKE CONFIGURABLE*/, heartbeatCheckDestination, HEARTBEAT_MSG);
 	}
 
-	@Override public void onReceiveImpl(Object message) throws Exception {
+	@Override public void onReceive(Object message) throws Exception {
 		if(message instanceof SfApplicationRequest) {
 			handleSfApplicationRequest((SfApplicationRequest) message);
 		} else if(message == CHECK_ON_CALCULATION) {

@@ -12,4 +12,7 @@ class SfalActorTestBase(val actorSystem: ActorSystem)
 
   def this() = this(ActorSystem("actorTest"))
 
+  override protected def afterAll(): Unit = {
+    actorSystem.shutdown()
+  }
 }
