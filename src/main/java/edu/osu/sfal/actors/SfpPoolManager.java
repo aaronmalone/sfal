@@ -2,9 +2,7 @@ package edu.osu.sfal.actors;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.japi.Creator;
 import com.google.common.collect.Maps;
-import edu.osu.sfal.actors.creators.SfpActorCreatorFactory;
 import edu.osu.sfal.messages.SfApplicationRequest;
 import edu.osu.sfal.messages.SfpNotBusy;
 import edu.osu.sfal.messages.sfp.HeartbeatFailed;
@@ -25,7 +23,7 @@ public class SfpPoolManager extends LastMessageReceivedActor {
 	private static AtomicInteger sfpActorCounter = new AtomicInteger();
 
 	private final SimulationFunctionName simulationFunctionName;
-	private final SfpActorCreatorFactory sfpActorCreatorFactory;
+	private final PropsFactory<SfpActor> sfpActorPropsFactory;
 
 	final Queue<SfApplicationRequest> requestQueue = new LinkedList<>();
 	final Map<SfpName, ActorRef> sfpActorMap = Maps.newHashMap();
@@ -33,9 +31,9 @@ public class SfpPoolManager extends LastMessageReceivedActor {
 
 	public SfpPoolManager(
 			SimulationFunctionName simulationFunctionName,
-			SfpActorCreatorFactory actorCreatorFactory) {
+			PropsFactory<SfpActor> sfpActorPropsFactory) {
 		this.simulationFunctionName = simulationFunctionName;
-		this.sfpActorCreatorFactory = actorCreatorFactory;
+		this.sfpActorPropsFactory = sfpActorPropsFactory;
 	}
 
 	@Override
@@ -63,8 +61,7 @@ public class SfpPoolManager extends LastMessageReceivedActor {
 	}
 
 	private ActorRef createSfpActor(SfpName sfpName) {
-		Creator<SfpActor> creator = sfpActorCreatorFactory.createCreator(sfpName);
-		Props props = Props.create(SfpActor.class, creator).withDispatcher("pinned-dispatcher");
+		Props props = sfpActorPropsFactory.createProps(SfpActor.class, simulationFunctionName, sfpName);
 		String name = sfpName.getName() + "_" + sfpActorCounter.incrementAndGet();
 		return getContext().actorOf(props, name);
 	}

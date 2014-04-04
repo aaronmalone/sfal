@@ -1,4 +1,4 @@
-package edu.osu.sfal.actors.creators;
+package edu.osu.sfal.actors;
 
 import akka.actor.Props;
 

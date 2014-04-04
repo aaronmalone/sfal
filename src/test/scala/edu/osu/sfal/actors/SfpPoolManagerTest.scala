@@ -11,10 +11,11 @@ import edu.osu.sfal.util.SfpName
 class SfpPoolManagerTest extends SfalActorTestBase {
 
   class SfpPoolManagerTestFixture extends SfalActorTestFixture {
-    //this sfpActorCreatorFactory creates SfpActor instances that send messages to a test probe
-    private val sfpActorCreatorFactory = new TestSfpActorCreatorFactory(mockLapisApi, simulationFunctionName)
 
-    private val props = Props(classOf[SfpPoolManager], simulationFunctionName, sfpActorCreatorFactory)
+    //this creates SfpActor instances that send messages to a test probe
+    private val sfpActorPropsFactory = newSfpActorPropsFactory()
+
+    private val props = Props(classOf[SfpPoolManager], simulationFunctionName, sfpActorPropsFactory)
     val testActorRef = TestActorRef.create[SfpPoolManager](system, props)
     val sfpPoolManager = testActorRef.underlyingActor
     val sfApplicationRequest = new SfApplicationRequest(simulationFunctionName, 0,

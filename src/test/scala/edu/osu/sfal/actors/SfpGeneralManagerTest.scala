@@ -7,15 +7,17 @@ import edu.osu.sfal.util.SfpName
 import edu.osu.sfal.messages.sfp.NewSfp
 import java.util.HashMap
 import com.google.common.collect.Sets
-import edu.osu.sfal.actors.creators.PropsFactory
 
 class SfpGeneralManagerTest extends SfalActorTestBase {
 
   class SfpGeneralManagerTestFixture extends SfalActorTestFixture {
-    private val sfpActorCreatorFactory = new TestSfpActorCreatorFactory(mockLapisApi, simulationFunctionName)
+
+    //create SfpActor instances that send messages to a test probe
+    private val sfpActorPropsFactory = newSfpActorPropsFactory()
+
     private val sfpPoolManagerPropsFactory = new PropsFactory[SfpPoolManager] {
       override def createProps(cls: Class[SfpPoolManager], args: AnyRef*): Props = {
-        Props.create(cls, simulationFunctionName, sfpActorCreatorFactory)
+        Props.create(cls, simulationFunctionName, sfpActorPropsFactory)
       }
     }
     private val props = Props(classOf[SfpGeneralManager], sfpPoolManagerPropsFactory)

@@ -108,7 +108,7 @@ class SfpActorTest extends SfalActorTestBase {
     "When an SFP actor receives a heartbeat message, it" should {
       "check whether the corresponding LAPIS node is alive" in {
 
-        /* set up */
+        /* set up currentRequest so we can complete exceptionally later */
         testActorRef ! request
         expectMsg(SfpActor.CHECK_ON_CALCULATION)
 
