@@ -22,15 +22,11 @@ public class Main {
 		//set this system property so we can route Restlet logging through slf4j
 		System.setProperty("org.restlet.engine.loggerFacadeClass",
 				"org.restlet.ext.slf4j.Slf4jLoggerFacade");
-		System.setProperty("log4j.configuration", "src/test/resources/log4j.properties");//"C:\\Users\\Aaron\\Dropbox\\Code\\sfal\\src\\test\\resources\\log4j.properties");
-//		loadProperties();
 		org.apache.log4j.helpers.LogLog.setInternalDebugging(true);
 		BasicConfigurator.configure();
 	}
 
 	public static void main(String[] args) throws Exception {
-
-
 		ApplicationContext context = new AnnotationConfigApplicationContext(SfalConfiguration.class);
 		Router router = context.getBean(Router.class);
 
@@ -40,16 +36,5 @@ public class Main {
 		System.out.println("about to start...");
 		component.start();
 		System.out.println("started.");
-	}
-
-	private static void loadProperties() {
-		//because getting logging to work in an IDE is wildly more difficult than it should be
-		Properties props = new Properties();
-		try {
-			props.load(new FileReader(new File("src/test/resources/log4j.properties")));
-			props.forEach((key, value) -> System.setProperty((String)key, (String)value));
-		} catch(IOException e) {
-			throw new RuntimeException(e);
-		}
 	}
 }
