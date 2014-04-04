@@ -12,12 +12,9 @@ class SfpGeneralManagerTest extends SfalActorTestBase {
 
   class SfpGeneralManagerTestFixture extends SfalActorTestFixture {
 
-    //create SfpActor instances that send messages to a test probe
-    private val sfpActorPropsFactory = newSfpActorPropsFactory()
-
-    private val sfpPoolManagerPropsFactory = new PropsFactory[SfpPoolManager] {
-      override def createProps(cls: Class[SfpPoolManager], args: AnyRef*): Props = {
-        Props.create(cls, simulationFunctionName, sfpActorPropsFactory)
+    private val sfpPoolManagerPropsFactory = new SfpPoolManagerPropsFactory(sfpActorPropsFactory) {
+      protected override def getArgsToUse(argsPassedIn: Array[AnyRef]): Array[AnyRef] = {
+        Array(simulationFunctionName, sfpActorPropsFactory)
       }
     }
     private val props = Props(classOf[SfpGeneralManager], sfpPoolManagerPropsFactory)

@@ -12,9 +12,6 @@ class SfpPoolManagerTest extends SfalActorTestBase {
 
   class SfpPoolManagerTestFixture extends SfalActorTestFixture {
 
-    //this creates SfpActor instances that send messages to a test probe
-    private val sfpActorPropsFactory = newSfpActorPropsFactory()
-
     private val props = Props(classOf[SfpPoolManager], simulationFunctionName, sfpActorPropsFactory)
     val testActorRef = TestActorRef.create[SfpPoolManager](system, props)
     val sfpPoolManager = testActorRef.underlyingActor
