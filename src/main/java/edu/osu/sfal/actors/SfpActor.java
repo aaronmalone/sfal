@@ -46,19 +46,17 @@ public class SfpActor extends LastMessageReceivedActor {
 		this.checkOnCalcDestination = getSelf();
 		this.heartbeatCheckDestination = getSelf();
 		this.heartbeatFailedDestination = getContext().parent();
-//		scheduleHeartbeatCheck();
+		scheduleHeartbeatCheck();
 	}
 
-	/* it looks like there's an opportunity for DRY here but there's not -- trust me */
-
 	@VisibleForTesting SfpActor(SimulationFunctionName simulationFunctionName, SfpName sfpName, LapisApi lapisApi,
-			ActorRef checkOnCalcDestination, ActorRef heartbeatCheckDestination, ActorRef heartbeatFailedDestination) {
+			ActorRef destination) {
 		this.simulationFunctionName = simulationFunctionName;
 		this.lapisApi = lapisApi;
 		this.sfpName = sfpName;
-		this.checkOnCalcDestination = checkOnCalcDestination;
-		this.heartbeatCheckDestination = heartbeatCheckDestination;
-		this.heartbeatFailedDestination = heartbeatFailedDestination;
+		this.checkOnCalcDestination = destination;
+		this.heartbeatCheckDestination = destination;
+		this.heartbeatFailedDestination = destination;
 		scheduleHeartbeatCheck();
 	}
 

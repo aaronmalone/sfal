@@ -65,8 +65,8 @@ public class SfpPoolManager extends LastMessageReceivedActor {
 	private ActorRef createSfpActor(SfpName sfpName) {
 		Creator<SfpActor> creator = sfpActorCreatorFactory.createCreator(sfpName);
 		Props props = Props.create(SfpActor.class, creator).withDispatcher("pinned-dispatcher");
-//		String name = sfpName.getName() + "_" + sfpActorCounter.incrementAndGet();
-		return getContext().actorOf(props); //, name);
+		String name = sfpName.getName() + "_" + sfpActorCounter.incrementAndGet();
+		return getContext().actorOf(props, name);
 	}
 
 	/**

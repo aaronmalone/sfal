@@ -2,7 +2,7 @@ package edu.osu.sfal.actors
 
 import akka.actor.{Terminated, Props}
 import akka.testkit.TestActorRef
-import org.mockito.Mockito
+import org.mockito.Mockito.{when, verify, reset, verifyNoMoreInteractions}
 import edu.osu.lapis.Flags
 import edu.osu.sfal.messages.{SfApplicationResult, SfApplicationRequest}
 import scala.collection.JavaConversions.{mapAsJavaMap,setAsJavaSet}
@@ -11,31 +11,26 @@ import edu.osu.sfal.messages.sfp.HeartbeatFailed
 
 class SfpActorTest extends SfalActorTestBase {
 
-  val FlagFalse = Flags.FLAG_VALUE_FALSE
-  val FlagTrue = Flags.FLAG_VALUE_TRUE
+  type Flag = Array[Double]
+  val FlagFalse: Flag = Flags.FLAG_VALUE_FALSE
+  val FlagTrue: Flag = Flags.FLAG_VALUE_TRUE
   val ReadyToCalculate = SfpActor.READY_TO_CALCULATE_VAR_NAME
   val FinishedCalculating = SfpActor.FINISHED_CALCULATING_VAR_NAME
 
-  /*
-       readyToCalculate      finishedCalculating       meaning
-       false                 true                      before a calculation has begun, input variables can be set and output variables retrieved
-       true                  true                      should only happen immediately after readyToCalculate is set to true
-       true                  false                     the SFP will then set its finishedCalculating to false
-       false                 false                     the SFP will next set its readyToCalculate to false, then run calculations
-       false                 true                      when calculation has finished
-   */
-
   class SfpActorTestFixture extends SfalActorTestFixture {
     val nodeName = sfpName.getName
-    private val props = Props.create(classOf[SfpActor], simulationFunctionName, sfpName, mockLapisApi,
-      testActor, testActor, testActor)
+    private val props = Props.create(classOf[SfpActor], simulationFunctionName, sfpName, mockLapisApi, testActor)
     val testActorRef = TestActorRef.create[SfpActor](system, props)
     val sfpActor = testActorRef.underlyingActor
 
     expectMsg(SfpActor.HEARTBEAT_MSG) // heartbeat check triggered on construction
 
-    Mockito.when(mockLapisApi.getArrayOfDouble(nodeName, ReadyToCalculate)).thenReturn(FlagFalse)
-    Mockito.when(mockLapisApi.getArrayOfDouble(nodeName, FinishedCalculating)).thenReturn(FlagTrue)
+    mockFlagCall(ReadyToCalculate, FlagFalse)
+    mockFlagCall(FinishedCalculating, FlagTrue)
+
+    def mockFlagCall(flagName: String, flagValue: Flag): Unit = {
+      when(mockLapisApi.getArrayOfDouble(nodeName, flagName)).thenReturn(flagValue)
+    }
   }
 
   new SfpActorTestFixture() {
@@ -51,16 +46,16 @@ class SfpActorTest extends SfalActorTestBase {
         assert(request === sfpActor.getCurrentRequest)
       }
       "validate that the SFP is not currently working" in {
-        Mockito.verify(mockLapisApi).getArrayOfDouble(nodeName, ReadyToCalculate)
-        Mockito.verify(mockLapisApi).getArrayOfDouble(nodeName, FinishedCalculating)
+        verify(mockLapisApi).getArrayOfDouble(nodeName, ReadyToCalculate)
+        verify(mockLapisApi).getArrayOfDouble(nodeName, FinishedCalculating)
       }
       "set the input variables on the SFP" in {
         inputsMap.foreach {
-          case (name, value) => Mockito.verify(mockLapisApi).set(nodeName, name, value)
+          case (name, value) => verify(mockLapisApi).set(nodeName, name, value)
         }
       }
       "set the readyToCalculate flag on the SFP" in {
-        Mockito.verify(mockLapisApi).set(nodeName, ReadyToCalculate, FlagTrue)
+        verify(mockLapisApi).set(nodeName, ReadyToCalculate, FlagTrue)
       }
       "schedule a check on the calculation" in {
         expectMsg(SfpActor.CHECK_ON_CALCULATION)
@@ -69,10 +64,10 @@ class SfpActorTest extends SfalActorTestBase {
 
     "When an SFP actor receives a check-on-calculation message, it " should {
       "check whether the calculation has finished" in {
-        Mockito.reset(mockLapisApi)
-        Mockito.when(mockLapisApi.getArrayOfDouble(nodeName, FinishedCalculating)).thenReturn(FlagFalse)
+        reset(mockLapisApi)
+        mockFlagCall(FinishedCalculating, FlagFalse)
         testActorRef ! SfpActor.CHECK_ON_CALCULATION
-        Mockito.verify(mockLapisApi).getArrayOfDouble(nodeName, FinishedCalculating)
+        verify(mockLapisApi).getArrayOfDouble(nodeName, FinishedCalculating)
       }
       "schedule another check on the calculation" in {
         expectMsg(SfpActor.CHECK_ON_CALCULATION)
@@ -92,14 +87,14 @@ class SfpActorTest extends SfalActorTestBase {
         testActorRef ! request //this will set the current request
 
         expectMsg(SfpActor.CHECK_ON_CALCULATION)
-        Mockito.reset(mockLapisApi)
-        Mockito.when(mockLapisApi.getArrayOfDouble(nodeName, FinishedCalculating)).thenReturn(FlagTrue)
+        reset(mockLapisApi)
+        mockFlagCall(FinishedCalculating, FlagTrue)
 
         testActorRef ! SfpActor.CHECK_ON_CALCULATION
 
-        Mockito.verify(mockLapisApi).getArrayOfDouble(nodeName, FinishedCalculating)
-        Mockito.verify(mockLapisApi).getObject(nodeName, outputName)
-        Mockito.verifyNoMoreInteractions(mockLapisApi)
+        verify(mockLapisApi).getArrayOfDouble(nodeName, FinishedCalculating)
+        verify(mockLapisApi).getObject(nodeName, outputName)
+        verifyNoMoreInteractions(mockLapisApi)
       }
       "complete the corresponding request" in {
         assert(request.getCompletableFuture.isDone)
@@ -126,15 +121,15 @@ class SfpActorTest extends SfalActorTestBase {
         testActorRef ! request
         expectMsg(SfpActor.CHECK_ON_CALCULATION)
 
-        Mockito.when(mockLapisApi.doHeartbeatCheckReturnNodeIsLive(nodeName)).thenReturn(true)
+        when(mockLapisApi.doHeartbeatCheckReturnNodeIsLive(nodeName)).thenReturn(true)
         testActorRef ! SfpActor.HEARTBEAT_MSG
-        Mockito.verify(mockLapisApi).doHeartbeatCheckReturnNodeIsLive(nodeName)
+        verify(mockLapisApi).doHeartbeatCheckReturnNodeIsLive(nodeName)
       }
       "schedule another heartbeat check if the node is alive" in {
         expectMsg(SfpActor.HEARTBEAT_MSG)
       }
       "send a heartbeat failed message if the heartbeat indicates the node is not alive" in {
-        Mockito.when(mockLapisApi.doHeartbeatCheckReturnNodeIsLive(nodeName)).thenReturn(false)
+        when(mockLapisApi.doHeartbeatCheckReturnNodeIsLive(nodeName)).thenReturn(false)
         watch(testActorRef)
         testActorRef ! SfpActor.HEARTBEAT_MSG
         expectMsg(new HeartbeatFailed(simulationFunctionName, sfpName))
@@ -148,5 +143,4 @@ class SfpActorTest extends SfalActorTestBase {
       }
     }
   }
-
 }
