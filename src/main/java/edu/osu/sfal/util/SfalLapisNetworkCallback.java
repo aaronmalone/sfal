@@ -76,8 +76,7 @@ public class SfalLapisNetworkCallback implements NetworkChangeCallback {
 	}
 
 	private SfpName getSfpName(SimulationFunctionName sfName, LapisNode lapisNode) {
-		String s = Joiner.on('+').join(sfName.getName(), lapisNode.getNodeName(), lapisNode.getUrl());
-		return new SfpName(s);
+		return new SfpName(lapisNode.getNodeName());
 	}
 
 }
