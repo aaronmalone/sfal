@@ -30,6 +30,9 @@ public class SfpActor extends UntypedActor {
 			HEARTBEAT_MSG = "HEARTBEAT_MSG",
 			CHECK_ON_CALCULATION = "CHECK_ON_CALCULATION";
 
+	private static long heartbeatPeriodMillis = 15000;
+	private static long calculationCheckPeriodMillis = 1000;
+
 
 	private final SimulationFunctionName simulationFunctionName;
 	private final SfpName sfpName;
@@ -56,7 +59,7 @@ public class SfpActor extends UntypedActor {
 	}
 
 	private void scheduleHeartbeatCheck() {
-		scheduleOnce(15 /*TODO MAKE CONFIGURABLE*/, heartbeatCheckDestination, HEARTBEAT_MSG);
+		scheduleOnce(heartbeatPeriodMillis, heartbeatCheckDestination, HEARTBEAT_MSG);
 	}
 
 	@Override public void onReceive(Object message) throws Exception {
@@ -93,7 +96,16 @@ public class SfpActor extends UntypedActor {
 	}
 
 	private void setInputVariablesOnSfp(Map<String, Object> inputs) {
-		inputs.forEach((name, value) -> lapisApi.set(getNodeName(), name, value));
+		inputs.forEach((name, value) -> setInputVariable(name, value));
+	}
+
+	private void setInputVariable(String name, Object value) {
+		try {
+			lapisApi.set(getNodeName(), name, value);
+		} catch(Exception e) {
+			throw new RuntimeException("Exception while setting variable '"
+					+ name + "' on node '" + getNodeName() + "'");
+		}
 	}
 
 	private void setReadyToCalculateFlag() {
@@ -101,8 +113,7 @@ public class SfpActor extends UntypedActor {
 	}
 
 	private void scheduleCheckOnCalculation() {
-		long delayMillis = 50; /*TODO MAKE CONFIGURABLE*/
-		scheduleOnce(delayMillis, checkOnCalcDestination, CHECK_ON_CALCULATION);
+		scheduleOnce(calculationCheckPeriodMillis, checkOnCalcDestination, CHECK_ON_CALCULATION);
 	}
 
 	private void checkOnCalculation() {
@@ -177,5 +188,13 @@ public class SfpActor extends UntypedActor {
 
 	@VisibleForTesting SfApplicationRequest getCurrentRequest() {
 		return currentRequest;
+	}
+
+	@VisibleForTesting static void setHeartbeatPeriodMillis(long heartbeatPeriodMillis) {
+		SfpActor.heartbeatPeriodMillis = heartbeatPeriodMillis;
+	}
+
+	@VisibleForTesting static void setCalculationCheckPeriodMillis(long calculationCheckPeriodMillis) {
+		SfpActor.calculationCheckPeriodMillis = calculationCheckPeriodMillis;
 	}
 }
