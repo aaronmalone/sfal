@@ -15,6 +15,8 @@ class SfpActorTest extends SfalActorTestBase {
   val FinishedCalculating = SfpActor.FINISHED_CALCULATING_VAR_NAME
 
   class SfpActorTestFixture extends SfalActorTestFixture {
+    SfpActor.setHeartbeatPeriodMillis(15)
+    SfpActor.setCalculationCheckPeriodMillis(15)
     val nodeName = sfpName.getName
     private val props = Props.create(classOf[SfpActor], simulationFunctionName, sfpName, mockLapisApi, testActor)
     val testActorRef = TestActorRef.create[SfpActor](system, props)
