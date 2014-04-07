@@ -11,21 +11,24 @@ import edu.osu.sfal.data.SfalDaoInMemoryImpl;
 import edu.osu.sfal.rest.IncomingRequestRestlet;
 import edu.osu.sfal.rest.JsonEntityExtractor;
 import edu.osu.sfal.rest.ThrowawayCacheRestlet;
+import org.apache.commons.lang3.Validate;
+import org.restlet.Restlet;
 import org.restlet.routing.Router;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Scope;
 
 @Configuration
 public class SfalConfiguration {
 
-	private LapisApi lapisApi;
+	//TODO: THIS CLASS NEEDS SIGNIFICANT CLEAN-UP
+
+	private ActorRef generalManagerActorRef = null;
 
 	@Bean
 	public LapisApi getLapisApi() {
-		lapisApi = new LapisApi(getNodeName(), getCoordinatorAddress());
+		LapisApi lapisApi = new LapisApi(getNodeName(), getCoordinatorAddress());
 		NetworkChangeCallback callback = new SfalLapisNetworkCallback(lapisApi,
-				getNodeReadyTimeout(), getDispatcherToSfpGeneralManager());
+				getNodeReadyTimeout(), getDispatcherToSfpGeneralManager(lapisApi));
 		lapisApi.registerNetworkChangeCallback(callback);
 		return lapisApi;
 	}
@@ -39,60 +42,34 @@ public class SfalConfiguration {
 	}
 
 	private long getNodeReadyTimeout() {
-		return 25000; //TODO MAKE CONFIGURABLE
+		return 15000; //TODO MAKE CONFIGURABLE
 	}
 
 	@Bean
 	public Router getRouter() {
+		SfalDao dao = new SfalDaoInMemoryImpl();
+		ThrowawayCacheRestlet restlet = new ThrowawayCacheRestlet(dao);
 		Router router = new Router();
-		router.attach("/cache", getThrowawayCacheRestlet());
-		router.attach("/cache/{dataStoreKey}", getThrowawayCacheRestlet());
-		router.attach("/requests", getJsonEntityExtractor());
+		router.attach("/cache", restlet);
+		router.attach("/cache/{dataStoreKey}", restlet);
+		Validate.notNull(generalManagerActorRef);
+		ActorRefMessageDispatcher a = new ActorRefMessageDispatcher<>(generalManagerActorRef);
+		Restlet incomingRequestRestlet = new IncomingRequestRestlet(dao, a, getRequestCompletedTimeout());
+		router.attach("/requests", new JsonEntityExtractor(null, incomingRequestRestlet));
 		return router;
 	}
 
-	@Bean
-	public ThrowawayCacheRestlet getThrowawayCacheRestlet() {
-		return new ThrowawayCacheRestlet(getSfalDao());
-	}
-
-	@Bean
-	public JsonEntityExtractor getJsonEntityExtractor() {
-		return new JsonEntityExtractor(null, getIncomingRequestRestlet());
-	}
-
-	@Bean
-	public IncomingRequestRestlet getIncomingRequestRestlet() {
-		return new IncomingRequestRestlet(getSfalDao(), getDispatcherToSfpGeneralManager(), getTimeout());
-	}
-
-	@Bean
-	@Scope("prototype")
-	public <T> MessageDispatcher<T> getDispatcherToSfpGeneralManager() {
-		return new ActorRefMessageDispatcher<>(getSfpGeneralManagerActorRef());
-	}
-
-	@Bean
-	public ActorRef getSfpGeneralManagerActorRef() {
-		ActorSystem system = getActorSystem();
-		PropsFactory<SfpActor> sfpActorPropsFac = new SfpActorPropsFactory(this.lapisApi);
+	public <T> MessageDispatcher<T> getDispatcherToSfpGeneralManager(LapisApi lapisApi) {
+		Validate.notNull(lapisApi);
+		ActorSystem system = ActorSystem.create("SFAL");
+		PropsFactory<SfpActor> sfpActorPropsFac = new SfpActorPropsFactory(lapisApi);
 		PropsFactory<SfpPoolManager> sfpPoolManagerPropsFactory = new SfpPoolManagerPropsFactory(sfpActorPropsFac);
 		Props props = Props.create(SfpGeneralManager.class, sfpPoolManagerPropsFactory);
-		return system.actorOf(props, "SfpGeneralManager");
+		generalManagerActorRef =  system.actorOf(props, "SfpGeneralManager");
+		return new ActorRefMessageDispatcher<>(generalManagerActorRef);
 	}
 
-	@Bean
-	public ActorSystem getActorSystem() {
-		return  ActorSystem.create("SFAL");
-	}
-
-	@Bean
-	public SfalDao getSfalDao() {
-		return new SfalDaoInMemoryImpl();
-	}
-
-	@Bean
-	public long getTimeout() {
+	public long getRequestCompletedTimeout() {
 		return 5000; //TODO MAKE CONFIGURABLE
 	}
 }
