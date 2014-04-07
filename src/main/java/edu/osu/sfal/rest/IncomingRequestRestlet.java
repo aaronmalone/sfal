@@ -14,6 +14,8 @@ import org.restlet.Context;
 import org.restlet.Request;
 import org.restlet.Response;
 import org.restlet.Restlet;
+import org.restlet.data.MediaType;
+import org.restlet.data.Status;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -52,11 +54,20 @@ public class IncomingRequestRestlet extends Restlet {
 	public void handle(Request request, Response response) {
 		super.handle(request, response);
 		logger.trace("Received incoming request: " + request);
-		JsonObject jsonObject = getEntityAsJsonObject(request);
-		SfApplicationRequest sfApplicationRequest = toSfApplicationRequest(jsonObject);
-		requestDispatcher.dispatch(sfApplicationRequest);
-		Map<String, String> outputsToDataStoreKeys = toStringMap(jsonObject.get("outputs").getAsJsonObject());
-		saveResults(outputsToDataStoreKeys, getResult(sfApplicationRequest));
+		handleInternal(request, response);
+	}
+
+	private void handleInternal(Request request, Response response) {
+		try {
+			JsonObject jsonObject = getEntityAsJsonObject(request);
+			SfApplicationRequest sfApplicationRequest = toSfApplicationRequest(jsonObject);
+			requestDispatcher.dispatch(sfApplicationRequest);
+			Map<String, String> outputsToDataStoreKeys = toStringMap(jsonObject.get("outputs").getAsJsonObject());
+			saveResults(outputsToDataStoreKeys, getResult(sfApplicationRequest));
+		} catch(Exception e) {
+			response.setStatus(Status.SERVER_ERROR_INTERNAL);
+			response.setEntity("Exception while processing request: " + e.getMessage(), MediaType.TEXT_PLAIN);
+		}
 	}
 
 	private JsonObject getEntityAsJsonObject(Request request) {
