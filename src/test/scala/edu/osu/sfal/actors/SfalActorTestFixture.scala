@@ -6,7 +6,6 @@ import edu.osu.lapis.{Flags, LapisApi}
 import org.mockito.Mockito._
 import akka.actor.ActorSystem
 import org.mockito.Matchers.anyString
-import akka.testkit.TestProbe
 
 class SfalActorTestFixture(implicit system: ActorSystem) {
   val simulationFunctionName = new SimulationFunctionName("name_"+randomString())

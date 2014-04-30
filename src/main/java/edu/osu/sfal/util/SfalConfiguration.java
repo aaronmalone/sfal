@@ -5,7 +5,7 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 import edu.osu.lapis.LapisApi;
 import edu.osu.lapis.network.NetworkChangeCallback;
-import edu.osu.sfal.actors.*;
+import edu.osu.sfal.actors.SfpGeneralManager;
 import edu.osu.sfal.data.SfalDao;
 import edu.osu.sfal.data.SfalDaoInMemoryImpl;
 import edu.osu.sfal.rest.IncomingRequestRestlet;
