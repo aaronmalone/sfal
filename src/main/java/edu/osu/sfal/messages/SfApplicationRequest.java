@@ -48,4 +48,10 @@ public class SfApplicationRequest {
 	public Set<String> getOutputNames() {
 		return outputNames;
 	}
+
+	@Override
+	public String toString() {
+		return getClass().getSimpleName() + "(" + simulationFunctionName.getName()
+				+ ", " + timestep + ")";
+	}
 }

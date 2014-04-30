@@ -2,12 +2,15 @@ package edu.osu.sfal.actors;
 
 import akka.actor.ActorRef;
 import akka.actor.UntypedActor;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Objects;
 import edu.osu.lapis.Flags;
 import edu.osu.lapis.LapisApi;
 import edu.osu.sfal.messages.SfApplicationRequest;
 import edu.osu.sfal.messages.SfApplicationResult;
+import edu.osu.sfal.messages.SfpNotBusy;
 import edu.osu.sfal.messages.sfp.HeartbeatFailed;
 import edu.osu.sfal.util.SfpName;
 import edu.osu.sfal.util.SimulationFunctionName;
@@ -22,6 +25,8 @@ import java.util.concurrent.TimeUnit;
 
 public class SfpActor extends UntypedActor {
 
+	private final LoggingAdapter logger = Logging.getLogger(getContext().system(), this);
+
 	static String
 			READY_TO_CALCULATE_VAR_NAME = "readyToCalculate",
 			FINISHED_CALCULATING_VAR_NAME = "finishedCalculating";
@@ -33,14 +38,13 @@ public class SfpActor extends UntypedActor {
 	private static long heartbeatPeriodMillis = 15000;
 	private static long calculationCheckPeriodMillis = 1000;
 
-
 	private final SimulationFunctionName simulationFunctionName;
 	private final SfpName sfpName;
 	private final LapisApi lapisApi;
 
-	@VisibleForTesting ActorRef checkOnCalcDestination;
-	@VisibleForTesting ActorRef heartbeatCheckDestination;
-	@VisibleForTesting ActorRef heartbeatFailedDestination;
+	private final ActorRef checkOnCalcDestination;
+	private final ActorRef heartbeatCheckDestination;
+	private final ActorRef heartbeatFailedDestination;
 
 	private SfApplicationRequest currentRequest = null;
 
@@ -63,6 +67,7 @@ public class SfpActor extends UntypedActor {
 	}
 
 	@Override public void onReceive(Object message) throws Exception {
+		logger.debug("Received message {} of type {}", message, message.getClass().getSimpleName());
 		if(message instanceof SfApplicationRequest) {
 			handleSfApplicationRequest((SfApplicationRequest) message);
 		} else if(message == CHECK_ON_CALCULATION) {
@@ -75,6 +80,7 @@ public class SfpActor extends UntypedActor {
 	}
 
 	private void handleSfApplicationRequest(SfApplicationRequest request) {
+		logger.info("Handling new SfApplicationRequest: {}", request);
 		validateSfpNonCurrentlyCalculating();
 		setCurrentRequest(request);
 		setInputVariablesOnSfp(request.getInputs());
@@ -85,8 +91,9 @@ public class SfpActor extends UntypedActor {
 	private void validateSfpNonCurrentlyCalculating() {
 		boolean readyToCalculateFlag = getFlag(READY_TO_CALCULATE_VAR_NAME);
 		boolean finishedCalculatingFlag = getFlag(FINISHED_CALCULATING_VAR_NAME);
-		Validate.isTrue(!readyToCalculateFlag);
-		Validate.isTrue(finishedCalculatingFlag);
+		String whenMessage = " when we tried to begin setting inputs";
+		Validate.isTrue(!readyToCalculateFlag, "'readyToCalculate' was set" + whenMessage);
+		Validate.isTrue(finishedCalculatingFlag, "'finishedCalculating' was not set" + whenMessage);
 	}
 
 	public void setCurrentRequest(SfApplicationRequest currentRequest) {
@@ -96,11 +103,12 @@ public class SfpActor extends UntypedActor {
 	}
 
 	private void setInputVariablesOnSfp(Map<String, Object> inputs) {
-		inputs.forEach((name, value) -> setInputVariable(name, value));
+		inputs.forEach((name, value) -> setIndividualInputVariable(name, value));
 	}
 
-	private void setInputVariable(String name, Object value) {
+	private void setIndividualInputVariable(String name, Object value) {
 		try {
+			logger.debug("Setting input variable '{}' on node '{}'", name, getNodeName());
 			lapisApi.set(getNodeName(), name, value);
 		} catch(Exception e) {
 			throw new RuntimeException("Exception while setting variable '"
@@ -109,6 +117,7 @@ public class SfpActor extends UntypedActor {
 	}
 
 	private void setReadyToCalculateFlag() {
+		logger.debug("Setting flag '{}' on node '{}'", READY_TO_CALCULATE_VAR_NAME, getNodeName());
 		lapisApi.set(getNodeName(), READY_TO_CALCULATE_VAR_NAME, Flags.FLAG_VALUE_TRUE);
 	}
 
@@ -125,20 +134,30 @@ public class SfpActor extends UntypedActor {
 		}
 	}
 
+	//TODO SET TIMESTEP?
+
 	private void handleFinishedCalculation() {
+		logger.info("Handling completion of calculation for current request: {}", currentRequest);
 		Map<String, Object> outputValues = getOutputValuesFromCurrentCalculation();
 		SfApplicationResult result = createsSfApplicationResultForCurrentCalculation(outputValues);
 		completeAndClearCurrentRequest(result);
+		SfpNotBusy sfpNotBusy = new SfpNotBusy(simulationFunctionName, sfpName);
+		this.getContext().parent().tell(sfpNotBusy, getSelf()); //TODO TEST
 	}
 
 	private Map<String, Object> getOutputValuesFromCurrentCalculation() {
 		Set<String> outputNames = currentRequest.getOutputNames();
 		Map<String, Object> outputValuesMap = new HashMap<>();
 		for (String outputName : outputNames) {
-			Object value = lapisApi.getObject(getNodeName(), outputName);
+			Object value = getSingleOutputValue(outputName);
 			outputValuesMap.put(outputName, value);
 		}
 		return outputValuesMap;
+	}
+
+	private Object getSingleOutputValue(String outputName) {
+		logger.debug("Retrieving output value '{}'", outputName);
+		return lapisApi.getObject(getNodeName(), outputName);
 	}
 
 	private SfApplicationResult createsSfApplicationResultForCurrentCalculation(Map<String, Object> outputValues) {
@@ -147,6 +166,7 @@ public class SfpActor extends UntypedActor {
 
 	private void completeAndClearCurrentRequest(SfApplicationResult result) {
 		currentRequest.getCompletableFuture().complete(result);
+		logger.debug("Successfully completed request: {}", currentRequest);
 		currentRequest = null;
 	}
 
@@ -155,18 +175,22 @@ public class SfpActor extends UntypedActor {
 		if(nodeIsLive) {
 			scheduleHeartbeatCheck();
 		} else {
-			handleNotNodeAlive();
+			handleNodeFailedHeartbeatCheck();
 		}
 	}
 
-	private void handleNotNodeAlive() {
+	private void handleNodeFailedHeartbeatCheck() {
+		logger.warning("Node '{}' failed heartbeat check.", getNodeName());
 		Object heartbeatFailed = new HeartbeatFailed(simulationFunctionName, sfpName);
 		heartbeatFailedDestination.tell(heartbeatFailed, getSelf());
 		if(currentRequest != null) {
 			Throwable exception = new IllegalStateException("SFP failed heartbeat while processing request.");
+			logger.warning("Completing current request {} with exception: {}", currentRequest, exception);
 			currentRequest.getCompletableFuture().completeExceptionally(exception);
 		}
+		logger.debug("Shutting down actor {}", getSelf());
 		getContext().stop(getSelf());
+		//TODO MAYBE THROW EXCEPTION
 	}
 
 	private void scheduleOnce(long delayMillis, ActorRef destination, Object message) {

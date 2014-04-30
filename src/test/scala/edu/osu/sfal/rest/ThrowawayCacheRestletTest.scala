@@ -5,7 +5,7 @@ import edu.osu.sfal.data.SfalDaoInMemoryImpl
 import org.restlet.Request
 import org.restlet.data.Method
 import java.util
-import com.google.gson.{Gson, JsonParser}
+import com.google.gson.JsonParser
 
 class ThrowawayCacheRestletTest extends FunSuite {
 

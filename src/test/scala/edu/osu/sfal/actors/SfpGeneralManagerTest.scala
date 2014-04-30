@@ -1,7 +1,7 @@
 package edu.osu.sfal.actors
 
 import edu.osu.sfal.messages.SfApplicationRequest
-import akka.testkit.TestActorRef
+import akka.testkit.{TestProbe, TestActorRef}
 import akka.actor.Props
 import edu.osu.sfal.util.SfpName
 import edu.osu.sfal.messages.sfp.NewSfp
@@ -11,13 +11,7 @@ import com.google.common.collect.Sets
 class SfpGeneralManagerTest extends SfalActorTestBase {
 
   class SfpGeneralManagerTestFixture extends SfalActorTestFixture {
-
-    private val sfpPoolManagerPropsFactory = new SfpPoolManagerPropsFactory(sfpActorPropsFactory) {
-      protected override def getArgsToUse(argsPassedIn: Array[AnyRef]): Array[AnyRef] = {
-        Array(simulationFunctionName, sfpActorPropsFactory)
-      }
-    }
-    private val props = Props(classOf[SfpGeneralManager], sfpPoolManagerPropsFactory)
+    private val props = Props(classOf[SfpGeneralManager], mockLapisApi)
     val testActorRef = TestActorRef.create[SfpGeneralManager](system, props)
     val sfpGeneralManager = testActorRef.underlyingActor
     assert(sfpGeneralManager.sfpPoolMap.isEmpty)
@@ -32,7 +26,6 @@ class SfpGeneralManagerTest extends SfalActorTestBase {
         new SfpGeneralManagerTestFixture() {
           testActorRef ! newSfp
           assert(sfpPoolManagerActor != null)
-          assert(newSfp === getLastMessageReceivedByActor(sfpPoolManagerActor, system))
         }
       }
     }
@@ -40,11 +33,13 @@ class SfpGeneralManagerTest extends SfalActorTestBase {
       "dispatch the message to the corresponding SfpPoolManager" in {
         new SfpGeneralManagerTestFixture() {
           testActorRef ! newSfp
+          assert(sfpGeneralManager.sfpPoolMap.size === 1) //one in map
+          val testProbe = TestProbe()
+          sfpGeneralManager.sfpPoolMap.put(simulationFunctionName, testProbe.ref)
           val secondNewSfpMessage = new NewSfp(simulationFunctionName, new SfpName("secondSFP"))
           testActorRef ! secondNewSfpMessage
+          testProbe.expectMsg(secondNewSfpMessage)
           assert(sfpGeneralManager.sfpPoolMap.size === 1) //no new SfpPoolManager actors added
-          val lastMsgReceived = getLastMessageReceivedByActor(sfpPoolManagerActor, system)
-          assert(secondNewSfpMessage === lastMsgReceived)
         }
       }
     }
@@ -55,8 +50,10 @@ class SfpGeneralManagerTest extends SfalActorTestBase {
           mockFlagCall("finishedCalculating", true)
           testActorRef ! newSfp
           val request = new SfApplicationRequest(simulationFunctionName, 0, new HashMap(), Sets.newHashSet())
+          val testProbe = TestProbe()
+          sfpGeneralManager.sfpPoolMap.put(simulationFunctionName, testProbe.ref)
           testActorRef ! request
-          assert(request === getLastMessageReceivedByActor(sfpPoolManagerActor, system))
+          testProbe.expectMsg(request)
         }
       }
     }

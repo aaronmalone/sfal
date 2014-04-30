@@ -12,7 +12,7 @@ class SfpPoolManagerTest extends SfalActorTestBase {
 
   class SfpPoolManagerTestFixture extends SfalActorTestFixture {
 
-    private val props = Props(classOf[SfpPoolManager], simulationFunctionName, sfpActorPropsFactory)
+    private val props = Props(classOf[SfpPoolManager], simulationFunctionName, mockLapisApi)
     val testActorRef = TestActorRef.create[SfpPoolManager](system, props)
     val sfpPoolManager = testActorRef.underlyingActor
     val sfApplicationRequest = new SfApplicationRequest(simulationFunctionName, 0,

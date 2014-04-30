@@ -42,7 +42,7 @@ public class SfalConfiguration {
 	}
 
 	private long getNodeReadyTimeout() {
-		return 15000; //TODO MAKE CONFIGURABLE
+		return 120 * 1000; //TODO MAKE CONFIGURABLE
 	}
 
 	@Bean
@@ -62,14 +62,12 @@ public class SfalConfiguration {
 	public <T> MessageDispatcher<T> getDispatcherToSfpGeneralManager(LapisApi lapisApi) {
 		Validate.notNull(lapisApi);
 		ActorSystem system = ActorSystem.create("SFAL");
-		PropsFactory<SfpActor> sfpActorPropsFac = new SfpActorPropsFactory(lapisApi);
-		PropsFactory<SfpPoolManager> sfpPoolManagerPropsFactory = new SfpPoolManagerPropsFactory(sfpActorPropsFac);
-		Props props = Props.create(SfpGeneralManager.class, sfpPoolManagerPropsFactory);
+		Props props = Props.create(SfpGeneralManager.class, lapisApi);
 		generalManagerActorRef =  system.actorOf(props, "SfpGeneralManager");
 		return new ActorRefMessageDispatcher<>(generalManagerActorRef);
 	}
 
 	public long getRequestCompletedTimeout() {
-		return 5000; //TODO MAKE CONFIGURABLE
+		return 75 * 1000; //TODO MAKE CONFIGURABLE
 	}
 }

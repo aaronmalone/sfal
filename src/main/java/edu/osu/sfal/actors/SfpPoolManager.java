@@ -2,7 +2,9 @@ package edu.osu.sfal.actors;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.actor.UntypedActor;
 import com.google.common.collect.Maps;
+import edu.osu.lapis.LapisApi;
 import edu.osu.sfal.messages.SfApplicationRequest;
 import edu.osu.sfal.messages.SfpNotBusy;
 import edu.osu.sfal.messages.sfp.HeartbeatFailed;
@@ -14,30 +16,26 @@ import org.apache.commons.lang3.Validate;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
-import java.util.concurrent.atomic.AtomicInteger;
 
-public class SfpPoolManager extends LastMessageReceivedActor {
+public class SfpPoolManager extends UntypedActor {
 
 	static final boolean BUSY = true, NOT_BUSY = false;
 
-	private static AtomicInteger sfpActorCounter = new AtomicInteger();
-
 	private final SimulationFunctionName simulationFunctionName;
-	private final PropsFactory<SfpActor> sfpActorPropsFactory;
+	private final LapisApi lapisApi;
 
 	final Queue<SfApplicationRequest> requestQueue = new LinkedList<>();
 	final Map<SfpName, ActorRef> sfpActorMap = Maps.newHashMap();
 	final Map<SfpName, Boolean> sfpBusyMap = Maps.newHashMap();
 
 	public SfpPoolManager(
-			SimulationFunctionName simulationFunctionName,
-			PropsFactory<SfpActor> sfpActorPropsFactory) {
+			SimulationFunctionName simulationFunctionName, LapisApi lapisApi) {
 		this.simulationFunctionName = simulationFunctionName;
-		this.sfpActorPropsFactory = sfpActorPropsFactory;
+		this.lapisApi = lapisApi;
 	}
 
 	@Override
-	public void onReceiveImpl(Object message) throws Exception {
+	public void onReceive(Object message) throws Exception {
 		if(message instanceof NewSfp) {
 			handleNewSfpRegistration((NewSfp) message);
 		} else if(message instanceof SfApplicationRequest) {
@@ -52,7 +50,7 @@ public class SfpPoolManager extends LastMessageReceivedActor {
 	}
 
 	private void handleNewSfpRegistration(NewSfp newSfp) {
-		Validate.isTrue(simulationFunctionName.equals(newSfp.getSimulationFunctionName()));
+		validateSimFunctionName(newSfp.getSimulationFunctionName());
 		SfpName sfpName = newSfp.getSfpName();
 		ActorRef actorRef = createSfpActor(sfpName);
 		sfpActorMap.put(sfpName, actorRef);
@@ -61,9 +59,8 @@ public class SfpPoolManager extends LastMessageReceivedActor {
 	}
 
 	private ActorRef createSfpActor(SfpName sfpName) {
-		Props props = sfpActorPropsFactory.createProps(SfpActor.class, simulationFunctionName, sfpName);
-		String name = sfpName.getName() + "_" + sfpActorCounter.incrementAndGet();
-		return getContext().actorOf(props, name);
+		Props props = Props.create(SfpActor.class, simulationFunctionName, sfpName, lapisApi);
+		return getContext().actorOf(props);
 	}
 
 	/**

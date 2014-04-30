@@ -76,8 +76,7 @@ public class SfalLapisNetworkCallbackTest {
 	private void commonAssertions(SfpStatusMessage sfpStatus) {
 		SimulationFunctionName simFunNameInMsg = sfpStatus.getSimulationFunctionName();
 		SfpName sfpNameInMsg = sfpStatus.getSfpName();
-		String expectedSfpName = Joiner.on('+').join(simulationFunctionName, nodeName, url);
-		assertEquals(new SfpName(expectedSfpName),  sfpNameInMsg);
+		assertEquals(new SfpName(nodeName),  sfpNameInMsg);
 		assertEquals(new SimulationFunctionName(simulationFunctionName), simFunNameInMsg);
 	}
 }

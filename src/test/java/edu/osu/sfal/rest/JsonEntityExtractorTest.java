@@ -13,7 +13,7 @@ import org.restlet.data.Method;
 import org.restlet.representation.EmptyRepresentation;
 import org.restlet.representation.StringRepresentation;
 
-import static edu.osu.sfal.rest.AttributeUtil.*;
+import static edu.osu.sfal.rest.AttributeUtil.getAttribute;
 import static edu.osu.sfal.rest.JsonEntityExtractor.ENTITY_ATTRIBUTE_NAME;
 
 public class JsonEntityExtractorTest {

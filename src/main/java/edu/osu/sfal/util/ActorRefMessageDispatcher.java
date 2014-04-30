@@ -1,7 +1,6 @@
 package edu.osu.sfal.util;
 
 import akka.actor.ActorRef;
-import edu.osu.sfal.messages.SfApplicationRequest;
 import org.apache.commons.lang3.Validate;
 
 public class ActorRefMessageDispatcher<T> implements MessageDispatcher<T> {

@@ -5,6 +5,7 @@ import com.google.gson.*;
 import org.junit.Assert;
 import org.junit.Test;
 import org.restlet.Request;
+import org.restlet.Restlet;
 import org.restlet.data.Method;
 import org.restlet.representation.StringRepresentation;
 
@@ -35,7 +36,13 @@ public class JsonEntityPairsExtractorTest {
 
     private final JsonEntityPairsExtractor extractor = new JsonEntityPairsExtractor(null, null);
 
-    @Test
+	public JsonEntityPairsExtractorTest() {
+		extractor.setNext(new Restlet() {
+			//no override
+		});
+	}
+
+	@Test
     public void testJsonEntityPairsExtraction() {
         String json = gson.toJson(entity);
         Request request = new Request(Method.POST, "resource", new StringRepresentation(json));

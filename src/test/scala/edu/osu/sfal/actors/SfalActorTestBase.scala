@@ -10,7 +10,7 @@ class SfalActorTestBase(val actorSystem: ActorSystem)
   with WordSpecLike
   with BeforeAndAfterAll {
 
-  def this() = this(ActorSystem("actorTest"))
+  def this() = this(ActorSystem("sfalActorTest"))
 
   override protected def afterAll(): Unit = {
     actorSystem.shutdown()

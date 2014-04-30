@@ -1,6 +1,5 @@
 package edu.osu.sfal.util;
 
-import com.google.common.base.Joiner;
 import edu.osu.lapis.LapisApi;
 import edu.osu.lapis.network.LapisNode;
 import edu.osu.lapis.network.NetworkChangeCallback;
@@ -10,7 +9,6 @@ import edu.osu.sfal.messages.sfp.SfpStatusMessage;
 import org.apache.log4j.Logger;
 
 import java.util.concurrent.TimeoutException;
-import java.util.function.Consumer;
 
 public class SfalLapisNetworkCallback implements NetworkChangeCallback {
 
