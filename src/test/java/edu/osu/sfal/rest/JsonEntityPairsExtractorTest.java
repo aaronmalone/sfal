@@ -34,7 +34,7 @@ public class JsonEntityPairsExtractorTest {
             .setPrettyPrinting()
             .create();
 
-    private final JsonEntityPairsExtractor extractor = new JsonEntityPairsExtractor(null, null);
+    private final JsonEntityPairsExtractor extractor = new JsonEntityPairsExtractor(null);
 
 	public JsonEntityPairsExtractorTest() {
 		extractor.setNext(new Restlet() {

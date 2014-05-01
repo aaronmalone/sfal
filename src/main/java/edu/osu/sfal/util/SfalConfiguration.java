@@ -8,66 +8,77 @@ import edu.osu.lapis.network.NetworkChangeCallback;
 import edu.osu.sfal.actors.SfpGeneralManager;
 import edu.osu.sfal.data.SfalDao;
 import edu.osu.sfal.data.SfalDaoInMemoryImpl;
+import edu.osu.sfal.messages.sfp.SfpStatusMessage;
+import edu.osu.sfal.rest.CacheRestlet;
 import edu.osu.sfal.rest.IncomingRequestRestlet;
 import edu.osu.sfal.rest.JsonEntityExtractor;
-import edu.osu.sfal.rest.ThrowawayCacheRestlet;
 import org.apache.commons.lang3.Validate;
 import org.restlet.Restlet;
 import org.restlet.routing.Router;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class SfalConfiguration {
 
-	//TODO: THIS CLASS NEEDS SIGNIFICANT CLEAN-UP
+	@Value("${sfal.nodeName}")
+	private String nodeName;
 
-	private ActorRef generalManagerActorRef = null;
+	@Value("${sfal.network.coordinatorAddress}")
+	private String coordinatorAddress;
+
+	@Value("${sfal.network.nodeReadyTimeoutMillis}")
+	private long nodeReadyTimeoutMillis;
+
+	@Value("${sfal.requestCompletedTimeout}")
+	private long requestCompletedTimeout;
+
+	private LapisApi lapisApi = null;
+
+	public SfalConfiguration() {
+		Validate.notNull(nodeName, "nodeName is null");
+		Validate.notNull(coordinatorAddress, "coordinatorAddress is null");
+		this.lapisApi = new LapisApi(nodeName, coordinatorAddress);
+	}
 
 	@Bean
 	public LapisApi getLapisApi() {
-		LapisApi lapisApi = new LapisApi(getNodeName(), getCoordinatorAddress());
-		NetworkChangeCallback callback = new SfalLapisNetworkCallback(lapisApi,
-				getNodeReadyTimeout(), getDispatcherToSfpGeneralManager(lapisApi));
-		lapisApi.registerNetworkChangeCallback(callback);
+		lapisApi.registerNetworkChangeCallback(getSfalLapisNetworkCallback());
 		return lapisApi;
 	}
 
-	private String getNodeName() {
-		return "SFAL"; //TODO MAKE CONFIGURABLE
+	@Bean NetworkChangeCallback getSfalLapisNetworkCallback() {
+		Validate.notNull(lapisApi, "lapisApi null");
+		return new SfalLapisNetworkCallback(lapisApi, nodeReadyTimeoutMillis, getMessageDispatcher());
 	}
 
-	private String getCoordinatorAddress() {
-		return "http://127.0.0.1:22333"; //TODO MAKE CONFIGURABLE
+	@Bean
+	public MessageDispatcher<SfpStatusMessage> getMessageDispatcher() {
+		return new ActorRefMessageDispatcher<>(getGeneralManagerActorRef());
 	}
 
-	private long getNodeReadyTimeout() {
-		return 120 * 1000; //TODO MAKE CONFIGURABLE
+	@Bean ActorRef getGeneralManagerActorRef() {
+		Validate.notNull(lapisApi, "lapisApi null");
+		ActorSystem system = ActorSystem.create("SFAL");
+		Props props = Props.create(SfpGeneralManager.class, lapisApi);
+		return system.actorOf(props, "SfpGeneralManager");
 	}
 
 	@Bean
 	public Router getRouter() {
 		SfalDao dao = new SfalDaoInMemoryImpl();
-		ThrowawayCacheRestlet restlet = new ThrowawayCacheRestlet(dao);
+		CacheRestlet restlet = new CacheRestlet(dao);
 		Router router = new Router();
 		router.attach("/cache", restlet);
 		router.attach("/cache/{dataStoreKey}", restlet);
-		Validate.notNull(generalManagerActorRef);
-		ActorRefMessageDispatcher a = new ActorRefMessageDispatcher<>(generalManagerActorRef);
-		Restlet incomingRequestRestlet = new IncomingRequestRestlet(dao, a, getRequestCompletedTimeout());
-		router.attach("/requests", new JsonEntityExtractor(null, incomingRequestRestlet));
+		Restlet incomingRequestRestlet =
+				new IncomingRequestRestlet(
+						dao,
+						new ActorRefMessageDispatcher<>(getGeneralManagerActorRef()),
+						requestCompletedTimeout);
+		router.attach("/requests", new JsonEntityExtractor(incomingRequestRestlet));
 		return router;
 	}
 
-	public <T> MessageDispatcher<T> getDispatcherToSfpGeneralManager(LapisApi lapisApi) {
-		Validate.notNull(lapisApi);
-		ActorSystem system = ActorSystem.create("SFAL");
-		Props props = Props.create(SfpGeneralManager.class, lapisApi);
-		generalManagerActorRef =  system.actorOf(props, "SfpGeneralManager");
-		return new ActorRefMessageDispatcher<>(generalManagerActorRef);
-	}
-
-	public long getRequestCompletedTimeout() {
-		return 75 * 1000; //TODO MAKE CONFIGURABLE
-	}
 }

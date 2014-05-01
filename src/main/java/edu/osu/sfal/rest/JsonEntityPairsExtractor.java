@@ -16,12 +16,8 @@ import static edu.osu.sfal.rest.AttributeUtil.getAttribute;
 
 public class JsonEntityPairsExtractor extends JsonEntityExtractor {
 
-	public JsonEntityPairsExtractor(Context context) {
-        super(context);
-    }
-
-	public JsonEntityPairsExtractor(Context context, Restlet next) {
-        super(context, next);
+	public JsonEntityPairsExtractor(Restlet next) {
+        super(next);
     }
 
     @Override

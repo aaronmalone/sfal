@@ -25,7 +25,7 @@ public class JsonEntityExtractorTest {
 		}
 	};
 
-    private final JsonEntityExtractor jsonEntityExtractor = new JsonEntityExtractor(null, noOp);
+    private final JsonEntityExtractor jsonEntityExtractor = new JsonEntityExtractor( noOp);
     private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
     @Test

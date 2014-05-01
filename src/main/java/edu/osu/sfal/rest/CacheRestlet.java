@@ -12,16 +12,16 @@ import org.restlet.data.MediaType;
 
 import java.util.Map;
 
-public class ThrowawayCacheRestlet extends Restlet {
+public class CacheRestlet extends Restlet {
 
 	private final SfalDao sfalDao;
 	private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
-	public ThrowawayCacheRestlet(SfalDao sfalDao) {
+	public CacheRestlet(SfalDao sfalDao) {
 		this.sfalDao = sfalDao;
 	}
 
-	public ThrowawayCacheRestlet(Context context, SfalDao sfalDao) {
+	public CacheRestlet(Context context, SfalDao sfalDao) {
 		super(context);
 		this.sfalDao = sfalDao;
 	}

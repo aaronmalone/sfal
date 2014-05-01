@@ -19,12 +19,8 @@ public class JsonEntityExtractor extends Filter {
 
 	private final JsonParser jsonParser = new JsonParser();
 
-	public JsonEntityExtractor(Context context) {
-	    super(context);
-	}
-
-	public JsonEntityExtractor(Context context, Restlet next) {
-	    super(context, next);
+	public JsonEntityExtractor(Restlet next) {
+		setNext(next);
 	}
 
 	@Override
