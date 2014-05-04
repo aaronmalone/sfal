@@ -8,77 +8,66 @@ import edu.osu.lapis.network.NetworkChangeCallback;
 import edu.osu.sfal.actors.SfpGeneralManager;
 import edu.osu.sfal.data.SfalDao;
 import edu.osu.sfal.data.SfalDaoInMemoryImpl;
+import edu.osu.sfal.messages.SfApplicationRequest;
 import edu.osu.sfal.messages.sfp.SfpStatusMessage;
 import edu.osu.sfal.rest.CacheRestlet;
 import edu.osu.sfal.rest.IncomingRequestRestlet;
 import edu.osu.sfal.rest.JsonEntityExtractor;
-import org.apache.commons.lang3.Validate;
+import edu.osu.sfal.rest.JsonEntityPairsExtractor;
 import org.restlet.Restlet;
 import org.restlet.routing.Router;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.restlet.routing.Validator;
 
-@Configuration
+import java.util.Properties;
+
 public class SfalConfiguration {
 
-	@Value("${sfal.nodeName}")
-	private String nodeName;
+	private final String nodeName;
+	private final String coordinatorAddress;
+	private final long nodeReadyTimeoutMillis;
+	private final long requestCompletedTimeout;
+	private final LapisApi lapisApi;
+	private final Router router;
 
-	@Value("${sfal.network.coordinatorAddress}")
-	private String coordinatorAddress;
-
-	@Value("${sfal.network.nodeReadyTimeoutMillis}")
-	private long nodeReadyTimeoutMillis;
-
-	@Value("${sfal.requestCompletedTimeout}")
-	private long requestCompletedTimeout;
-
-	private LapisApi lapisApi = null;
-
-	public SfalConfiguration() {
-		Validate.notNull(nodeName, "nodeName is null");
-		Validate.notNull(coordinatorAddress, "coordinatorAddress is null");
+	public SfalConfiguration(Properties properties) {
+		this.nodeName = getProperty(properties, "sfal.nodeName");
+		this.coordinatorAddress = getProperty(properties, "sfal.network.coordinatorAddress");
+		this.nodeReadyTimeoutMillis = Long.parseLong(getProperty(properties, "sfal.network.nodeReadyTimeoutMillis"));
+		this.requestCompletedTimeout = Long.parseLong(getProperty(properties, "sfal.requestCompletedTimeout"));
 		this.lapisApi = new LapisApi(nodeName, coordinatorAddress);
-	}
 
-	@Bean
-	public LapisApi getLapisApi() {
-		lapisApi.registerNetworkChangeCallback(getSfalLapisNetworkCallback());
-		return lapisApi;
-	}
-
-	@Bean NetworkChangeCallback getSfalLapisNetworkCallback() {
-		Validate.notNull(lapisApi, "lapisApi null");
-		return new SfalLapisNetworkCallback(lapisApi, nodeReadyTimeoutMillis, getMessageDispatcher());
-	}
-
-	@Bean
-	public MessageDispatcher<SfpStatusMessage> getMessageDispatcher() {
-		return new ActorRefMessageDispatcher<>(getGeneralManagerActorRef());
-	}
-
-	@Bean ActorRef getGeneralManagerActorRef() {
-		Validate.notNull(lapisApi, "lapisApi null");
 		ActorSystem system = ActorSystem.create("SFAL");
 		Props props = Props.create(SfpGeneralManager.class, lapisApi);
-		return system.actorOf(props, "SfpGeneralManager");
+		ActorRef actorRef = system.actorOf(props, "SfpGeneralManager");
+		MessageDispatcher<SfpStatusMessage> statusDispatcher = new ActorRefMessageDispatcher<>(actorRef);
+		NetworkChangeCallback ncc = new SfalLapisNetworkCallback(lapisApi, nodeReadyTimeoutMillis, statusDispatcher);
+		lapisApi.registerNetworkChangeCallback(ncc);
+
+		SfalDao sfalDao = new SfalDaoInMemoryImpl();
+		CacheRestlet cacheRestlet = new CacheRestlet(sfalDao);
+		this.router = new Router();
+		router.attach("/cache", cacheRestlet);
+		router.attach("/cache/{dataStoreKey}", cacheRestlet);
+		MessageDispatcher<SfApplicationRequest> requestDispatcher = new ActorRefMessageDispatcher<>(actorRef);
+		Restlet requestRestlet = new IncomingRequestRestlet(sfalDao, requestDispatcher, requestCompletedTimeout);
+		Validator validator = new Validator();
+		validator.validatePresence("model");
+		validator.validatePresence("timestep");
+		validator.validatePresence("inputs");
+		validator.validatePresence("outputs");
+		validator.setNext(requestRestlet);
+		router.attach("/requests", new JsonEntityPairsExtractor(validator));
 	}
 
-	@Bean
+	private static String getProperty(Properties properties, String propertyName) {
+		String value = properties.getProperty(propertyName);
+		if(value == null || value.isEmpty()) {
+			throw new IllegalStateException("Property '" + propertyName + "' not provided.");
+		}
+		return value;
+	}
+
 	public Router getRouter() {
-		SfalDao dao = new SfalDaoInMemoryImpl();
-		CacheRestlet restlet = new CacheRestlet(dao);
-		Router router = new Router();
-		router.attach("/cache", restlet);
-		router.attach("/cache/{dataStoreKey}", restlet);
-		Restlet incomingRequestRestlet =
-				new IncomingRequestRestlet(
-						dao,
-						new ActorRefMessageDispatcher<>(getGeneralManagerActorRef()),
-						requestCompletedTimeout);
-		router.attach("/requests", new JsonEntityExtractor(incomingRequestRestlet));
 		return router;
 	}
-
 }

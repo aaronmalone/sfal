@@ -1,13 +1,15 @@
 package edu.osu.sfal.util;
 
+import com.google.common.io.Files;
+import org.apache.commons.lang3.Validate;
 import org.restlet.Component;
-import org.restlet.Request;
-import org.restlet.Response;
-import org.restlet.Restlet;
 import org.restlet.data.Protocol;
 import org.restlet.routing.Router;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.Properties;
 
 public class Main {
 
@@ -19,28 +21,31 @@ public class Main {
 	}
 
 	public static void main(String[] args) throws Exception {
-		ApplicationContext context = new AnnotationConfigApplicationContext(SfalConfiguration.class);
-		Router router = context.getBean(Router.class);
+		Properties properties = getProperties(args);
+		int port = getPort(properties);
+
+		SfalConfiguration sfalConfiguration = new SfalConfiguration(properties);
+		Router router = sfalConfiguration.getRouter();
 
 		Component component = new Component();
-		component.getServers().add(Protocol.HTTP, 2345);
-		component.getDefaultHost().attachDefault(getExceptionPrintingRestlet(router));
+		component.getServers().add(Protocol.HTTP, port);
+		component.getDefaultHost().attachDefault(router);
 		System.out.println("about to start...");
 		component.start();
 		System.out.println("started.");
 	}
 
-	private static Restlet getExceptionPrintingRestlet(final Restlet target) {
-		return new Restlet() {
-			@Override
-			public void handle(Request request, Response response) {
-				super.handle(request, response);
-				try {
-					target.handle(request, response);
-				} catch(Exception e) {
-					e.printStackTrace();
-				}
-			}
-		};
+	private static Properties getProperties(String[] propertyFilesNames) throws IOException {
+		Validate.notEmpty(propertyFilesNames, "properties files names array is empty");
+		Properties properties = new Properties();
+		for(String propsFile : propertyFilesNames) {
+			properties.load(Files.newReader(new File(propsFile), Charset.defaultCharset()));
+		}
+		return properties;
+	}
+
+	private static int getPort(Properties properties) {
+		String port = properties.getProperty("sfal.port");
+		return Integer.parseInt(port);
 	}
 }

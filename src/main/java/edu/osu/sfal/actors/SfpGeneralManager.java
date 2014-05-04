@@ -9,6 +9,7 @@ import edu.osu.lapis.LapisApi;
 import edu.osu.sfal.messages.SfApplicationRequest;
 import edu.osu.sfal.messages.sfp.NewSfp;
 import edu.osu.sfal.util.SimulationFunctionName;
+import org.apache.commons.lang3.Validate;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -23,6 +24,7 @@ public class SfpGeneralManager extends UntypedActor {
 	private final LapisApi lapisApi;
 
 	public SfpGeneralManager(LapisApi lapisApi) {
+		Validate.notNull(lapisApi);
 		this.lapisApi = lapisApi;
 	}
 

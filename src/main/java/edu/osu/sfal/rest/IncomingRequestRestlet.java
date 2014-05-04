@@ -54,7 +54,11 @@ public class IncomingRequestRestlet extends Restlet {
 	public void handle(Request request, Response response) {
 		super.handle(request, response);
 		logger.trace("Received incoming request: " + request);
-		handleInternal(request, response);
+		if(!response.getStatus().isError()) {
+			handleInternal(request, response);
+		} else {
+			response.setStatus(Status.SUCCESS_NO_CONTENT);
+		}
 	}
 
 	private void handleInternal(Request request, Response response) {
@@ -65,7 +69,8 @@ public class IncomingRequestRestlet extends Restlet {
 			Map<String, String> outputsToDataStoreKeys = toStringMap(jsonObject.get("outputs").getAsJsonObject());
 			saveResults(outputsToDataStoreKeys, getResult(sfApplicationRequest));
 		} catch(Exception e) {
-			response.setStatus(Status.SERVER_ERROR_INTERNAL);
+			logger.warn("Exception while processing request.", e);
+			response.setStatus(Status.SERVER_ERROR_INTERNAL, e);
 			response.setEntity("Exception while processing request: " + e.getMessage(), MediaType.TEXT_PLAIN);
 		}
 	}
