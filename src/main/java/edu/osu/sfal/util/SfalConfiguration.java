@@ -4,6 +4,8 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import com.couchbase.client.CouchbaseClient;
+import com.couchbase.client.CouchbaseConnectionFactory;
+import com.couchbase.client.CouchbaseConnectionFactoryBuilder;
 import edu.osu.lapis.LapisApi;
 import edu.osu.lapis.network.NetworkChangeCallback;
 import edu.osu.sfal.actors.SfpGeneralManager;
@@ -77,8 +79,12 @@ public class SfalConfiguration {
 
 	private static SfalDao getSfalDao(String couchbaseUrl) throws IOException {
 		List<URI> nodes = new ArrayList<>();
-		nodes.add(URI.create(couchbaseUrl /*"http://127.0.0.1:8091/pools"*/));
-		CouchbaseClient client = new CouchbaseClient(nodes, "default", "");
+		nodes.add(URI.create(couchbaseUrl));
+
+		CouchbaseConnectionFactoryBuilder factoryBuilder = new CouchbaseConnectionFactoryBuilder();
+		factoryBuilder.setOpTimeout(10000);
+		CouchbaseConnectionFactory connectionFactory = factoryBuilder.buildCouchbaseConnection(nodes, "default", "");
+		CouchbaseClient client = new CouchbaseClient(connectionFactory);
 		return new CouchbaseDao(client);
 	}
 
