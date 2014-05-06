@@ -143,7 +143,7 @@ public class SfpPoolManager extends UntypedActor {
 
 	private void handleSfpHeartbeatFailed(HeartbeatFailed heartbeatFailedMsg) {
 		SfpName sfpName = heartbeatFailedMsg.getSfpName();
-		logger.warning("Removing SFP {}" + sfpName);
+		logger.warning("Removing SFP {}", sfpName.getName());
 		sfpActorMap.remove(sfpName);
 		sfpBusyMap.remove(sfpName);
 		if(sfpActorMap.isEmpty()) {
@@ -152,14 +152,13 @@ public class SfpPoolManager extends UntypedActor {
 	}
 
 	private void handleNoMoreSfpActors() {
-		String message = "There are no " + simulationFunctionName.getName()
-				+ " SFPs available to handle requests.";
+		String message = "There are no '" + simulationFunctionName.getName()
+				+ "' SFPs available to handle requests.";
 		logger.warning(message);
 		Exception exception = new IllegalStateException(message);
 		while(!requestQueue.isEmpty()) {
 			requestQueue.poll().getCompletableFuture().completeExceptionally(exception);
 		}
-		getContext().stop(getSelf());
 	}
 
 	private void setActorBusyness(SfpName sfpName, boolean busy) {

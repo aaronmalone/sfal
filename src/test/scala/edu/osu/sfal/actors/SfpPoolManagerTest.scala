@@ -49,15 +49,6 @@ class SfpPoolManagerTest extends SfalActorTestBase {
           assert(1 == sfpPoolManager.sfpActorMap.size())
         }
       }
-      "shutdown if the failed SFP is the last SFP in the pool" in {
-        new SfpPoolManagerTestFixture() {
-          testActorRef ! newSfp //register the SFP
-          val probe = TestProbe()
-          probe watch testActorRef
-          testActorRef ! new HeartbeatFailed(simulationFunctionName, sfpName)
-          probe.expectTerminated(testActorRef)
-        }
-      }
     }
 
     "it receives an " + classOf[SfApplicationRequest].getName + " message," should {

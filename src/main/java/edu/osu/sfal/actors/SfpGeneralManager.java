@@ -40,6 +40,7 @@ public class SfpGeneralManager extends UntypedActor {
 
 	private void handleNewSfp(NewSfp newSfp) {
 		SimulationFunctionName sf = newSfp.getSimulationFunctionName();
+		logger.info("New SFP {} for simulation function {}", newSfp.getSfpName(), sf.getName());
 		final ActorRef actorRef;
 		if(sfpPoolMap.containsKey(sf)) {
 			actorRef = sfpPoolMap.get(sf);
@@ -63,8 +64,10 @@ public class SfpGeneralManager extends UntypedActor {
 	}
 
 	private ActorRef createAndStoreSfpPoolManagerActor(SimulationFunctionName sfName) {
+		logger.info("Creating new {} for simulation function {}", SfpPoolManager.class.getName(), sfName.getName());
 		Props props = Props.create(SfpPoolManager.class, sfName, lapisApi);
-		ActorRef ref = getContext().actorOf(props, sfName.getName());
+		ActorRef ref = getContext().actorOf(props, SfpPoolManager.class.getSimpleName() + "_" + sfName.getName());
+		logger.debug("Created actor {}", ref);
 		sfpPoolMap.put(sfName, ref);
 		return ref;
 	}
