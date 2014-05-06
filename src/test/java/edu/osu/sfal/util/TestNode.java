@@ -12,6 +12,10 @@ public class TestNode {
 		lapisApi.publish("readyToCalculate", readyToCalculate);
 		double[] finishedCalculating = Flags.getFlag(true);
 		lapisApi.publishReadOnly("finishedCalculating", finishedCalculating);
+
+		int[] timestep = new int[1];
+		lapisApi.publish("timestep", timestep);
+
 		lapisApi.ready();
 
 		while(true) {
@@ -23,6 +27,7 @@ public class TestNode {
 			Flags.setFlagFalse(readyToCalculate);
 
 			System.out.println("would do calculation here...");
+			System.out.println("timestep is " + timestep[0]);
 
 			Sleep.sleep(2500);
 
