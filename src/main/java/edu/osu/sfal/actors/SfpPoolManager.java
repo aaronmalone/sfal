@@ -7,7 +7,6 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import com.google.common.collect.Maps;
 import edu.osu.lapis.LapisApi;
-import edu.osu.lapis.util.Sleep;
 import edu.osu.sfal.messages.SfApplicationRequest;
 import edu.osu.sfal.messages.SfpNotBusy;
 import edu.osu.sfal.messages.sfp.HeartbeatFailed;
@@ -66,7 +65,9 @@ public class SfpPoolManager extends UntypedActor {
 
 	private ActorRef createSfpActor(SfpName sfpName) {
 		Props props = Props.create(SfpActor.class, simulationFunctionName, sfpName, lapisApi);
-		return getContext().actorOf(props.withDispatcher("pinned-dispatcher"));
+		ActorRef actorRef = getContext().actorOf(props.withDispatcher("pinned-dispatcher"));
+		logger.info("Created new SfpActor: {}", actorRef);
+		return actorRef;
 	}
 
 	/**
@@ -84,6 +85,7 @@ public class SfpPoolManager extends UntypedActor {
 		if(isPoolEmptyOfSFPs()) {
 			handlePoolEmptyOfSFPs(sfApplicationRequest);
 		} else if(allPooledSFPsAreBusy()) {
+			logger.debug("All SFPs busy. Queueing request {}", sfApplicationRequest);
 			requestQueue.add(sfApplicationRequest);
 		} else {
 			dispatchRequest(sfApplicationRequest);
@@ -134,12 +136,14 @@ public class SfpPoolManager extends UntypedActor {
 	}
 
 	private void dispatchToSfp(SfpName sfpName, SfApplicationRequest sfApplicationRequest) {
+		logger.info("Dispatching request {} to SFP {}", sfApplicationRequest, sfpName);
 		ActorRef actorRef = sfpActorMap.get(sfpName);
 		actorRef.tell(sfApplicationRequest, getSelf());
 	}
 
 	private void handleSfpHeartbeatFailed(HeartbeatFailed heartbeatFailedMsg) {
 		SfpName sfpName = heartbeatFailedMsg.getSfpName();
+		logger.warning("Removing SFP {}" + sfpName);
 		sfpActorMap.remove(sfpName);
 		sfpBusyMap.remove(sfpName);
 		if(sfpActorMap.isEmpty()) {
@@ -148,9 +152,10 @@ public class SfpPoolManager extends UntypedActor {
 	}
 
 	private void handleNoMoreSfpActors() {
-		String exceptionMessage = "There are no " + simulationFunctionName.getName()
+		String message = "There are no " + simulationFunctionName.getName()
 				+ " SFPs available to handle requests.";
-		Exception exception = new IllegalStateException(exceptionMessage);
+		logger.warning(message);
+		Exception exception = new IllegalStateException(message);
 		while(!requestQueue.isEmpty()) {
 			requestQueue.poll().getCompletableFuture().completeExceptionally(exception);
 		}
@@ -158,6 +163,7 @@ public class SfpPoolManager extends UntypedActor {
 	}
 
 	private void setActorBusyness(SfpName sfpName, boolean busy) {
+		logger.debug("Setting actor busyness for {} to {}", sfpName, busy);
 		this.sfpBusyMap.put(sfpName, busy);
 	}
 
