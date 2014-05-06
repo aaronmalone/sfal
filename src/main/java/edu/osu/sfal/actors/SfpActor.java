@@ -104,7 +104,7 @@ public class SfpActor extends UntypedActor {
 
 	private void setInputVariablesAndTimeStep(Map<String, Object> inputs, int timestep) {
 		inputs.forEach(this::setIndividualInputVariable);
-		setIndividualInputVariable("timestep", timestep);
+		setIndividualInputVariable("timestep", new int[]{timestep});
 	}
 
 	private void setIndividualInputVariable(String name, Object value) {
@@ -128,7 +128,7 @@ public class SfpActor extends UntypedActor {
 
 	private void checkOnCalculation() {
 		boolean finishedCalculating = getFlag(FINISHED_CALCULATING_VAR_NAME);
-		if(finishedCalculating) {
+		if(finishedCalculating && !getFlag(READY_TO_CALCULATE_VAR_NAME)) {
 			handleFinishedCalculation();
 		} else {
 			scheduleCheckOnCalculation();
