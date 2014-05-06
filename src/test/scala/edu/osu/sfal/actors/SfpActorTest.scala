@@ -84,10 +84,12 @@ class SfpActorTest extends SfalActorTestBase {
         expectMsg(SfpActor.CHECK_ON_CALCULATION)
         reset(mockLapisApi)
         mockFlagCall(FinishedCalculating, true)
+        mockFlagCall(ReadyToCalculate, false)
 
         testActorRef ! SfpActor.CHECK_ON_CALCULATION
 
         verify(mockLapisApi).getArrayOfDouble(nodeName, FinishedCalculating)
+        verify(mockLapisApi).getArrayOfDouble(nodeName, ReadyToCalculate)
         verify(mockLapisApi).getObject(nodeName, outputName)
         verifyNoMoreInteractions(mockLapisApi)
       }
