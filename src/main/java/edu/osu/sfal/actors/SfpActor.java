@@ -113,7 +113,7 @@ public class SfpActor extends UntypedActor {
 			lapisApi.set(getNodeName(), name, value);
 		} catch(Exception e) {
 			throw new RuntimeException("Exception while setting variable '"
-					+ name + "' on node '" + getNodeName() + "'");
+					+ name + "' on node '" + getNodeName() + "'", e);
 		}
 	}
 
