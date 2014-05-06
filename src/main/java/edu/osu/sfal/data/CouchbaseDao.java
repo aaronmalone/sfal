@@ -1,8 +1,11 @@
 package edu.osu.sfal.data;
 
 import com.couchbase.client.CouchbaseClientIF;
+import org.apache.log4j.Logger;
 
 public class CouchbaseDao implements SfalDao {
+
+	private final Logger logger = Logger.getLogger(getClass());
 
 	private final CouchbaseClientIF couchbaseClient;
 
@@ -12,11 +15,13 @@ public class CouchbaseDao implements SfalDao {
 
 	@Override
 	public Object lookup(String key) {
+		logger.trace("Looking up " + key);
 		return couchbaseClient.get(key);
 	}
 
 	@Override
 	public void save(String key, Object value) {
+		logger.trace("Saving " + key);
 		couchbaseClient.set(key, value);
 	}
 }
