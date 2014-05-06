@@ -83,7 +83,7 @@ public class SfpActor extends UntypedActor {
 		logger.info("Handling new SfApplicationRequest: {}", request);
 		validateSfpNonCurrentlyCalculating();
 		setCurrentRequest(request);
-		setInputVariablesOnSfp(request.getInputs());
+		setInputVariablesAndTimeStep(request.getInputs(), request.getTimestep());
 		setReadyToCalculateFlag();
 		scheduleCheckOnCalculation();
 	}
@@ -102,8 +102,9 @@ public class SfpActor extends UntypedActor {
 		this.currentRequest = currentRequest;
 	}
 
-	private void setInputVariablesOnSfp(Map<String, Object> inputs) {
-		inputs.forEach((name, value) -> setIndividualInputVariable(name, value));
+	private void setInputVariablesAndTimeStep(Map<String, Object> inputs, int timestep) {
+		inputs.forEach(this::setIndividualInputVariable);
+		setIndividualInputVariable("timestep", timestep);
 	}
 
 	private void setIndividualInputVariable(String name, Object value) {
@@ -134,15 +135,13 @@ public class SfpActor extends UntypedActor {
 		}
 	}
 
-	//TODO SET TIMESTEP?
-
 	private void handleFinishedCalculation() {
 		logger.info("Handling completion of calculation for current request: {}", currentRequest);
 		Map<String, Object> outputValues = getOutputValuesFromCurrentCalculation();
 		SfApplicationResult result = createsSfApplicationResultForCurrentCalculation(outputValues);
 		completeAndClearCurrentRequest(result);
 		SfpNotBusy sfpNotBusy = new SfpNotBusy(simulationFunctionName, sfpName);
-		this.getContext().parent().tell(sfpNotBusy, getSelf()); //TODO TEST
+		this.getContext().parent().tell(sfpNotBusy, getSelf());
 	}
 
 	private Map<String, Object> getOutputValuesFromCurrentCalculation() {

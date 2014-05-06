@@ -3,9 +3,11 @@ package edu.osu.sfal.util;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
+import com.couchbase.client.CouchbaseClient;
 import edu.osu.lapis.LapisApi;
 import edu.osu.lapis.network.NetworkChangeCallback;
 import edu.osu.sfal.actors.SfpGeneralManager;
+import edu.osu.sfal.data.CouchbaseDao;
 import edu.osu.sfal.data.SfalDao;
 import edu.osu.sfal.data.SfalDaoInMemoryImpl;
 import edu.osu.sfal.messages.SfApplicationRequest;
@@ -18,22 +20,28 @@ import org.restlet.Restlet;
 import org.restlet.routing.Router;
 import org.restlet.routing.Validator;
 
+import java.io.IOException;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 public class SfalConfiguration {
 
 	private final String nodeName;
 	private final String coordinatorAddress;
+	private final String couchbaseUrl;
 	private final long nodeReadyTimeoutMillis;
 	private final long requestCompletedTimeout;
 	private final LapisApi lapisApi;
 	private final Router router;
 
-	public SfalConfiguration(Properties properties) {
+	public SfalConfiguration(Properties properties) throws IOException {
 		this.nodeName = getProperty(properties, "sfal.nodeName");
 		this.coordinatorAddress = getProperty(properties, "sfal.network.coordinatorAddress");
 		this.nodeReadyTimeoutMillis = Long.parseLong(getProperty(properties, "sfal.network.nodeReadyTimeoutMillis"));
 		this.requestCompletedTimeout = Long.parseLong(getProperty(properties, "sfal.requestCompletedTimeout"));
+		this.couchbaseUrl = getProperty(properties, "sfal.couchbase.url");
 		this.lapisApi = new LapisApi(nodeName, coordinatorAddress);
 
 		ActorSystem system = ActorSystem.create("SFAL");
@@ -43,7 +51,7 @@ public class SfalConfiguration {
 		NetworkChangeCallback ncc = new SfalLapisNetworkCallback(lapisApi, nodeReadyTimeoutMillis, statusDispatcher);
 		lapisApi.registerNetworkChangeCallback(ncc);
 
-		SfalDao sfalDao = new SfalDaoInMemoryImpl();
+		SfalDao sfalDao = getSfalDao(couchbaseUrl);
 		CacheRestlet cacheRestlet = new CacheRestlet(sfalDao);
 		this.router = new Router();
 		router.attach("/cache", cacheRestlet);
@@ -65,6 +73,13 @@ public class SfalConfiguration {
 			throw new IllegalStateException("Property '" + propertyName + "' not provided.");
 		}
 		return value;
+	}
+
+	private static SfalDao getSfalDao(String couchbaseUrl) throws IOException {
+		List<URI> nodes = new ArrayList<>();
+		nodes.add(URI.create(couchbaseUrl /*"http://127.0.0.1:8091/pools"*/));
+		CouchbaseClient client = new CouchbaseClient(nodes, "default", "");
+		return new CouchbaseDao(client);
 	}
 
 	public Router getRouter() {

@@ -13,6 +13,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.restlet.Request;
 import org.restlet.Response;
+import org.restlet.data.MediaType;
 import org.restlet.data.Method;
 
 import java.util.HashMap;
@@ -29,32 +30,36 @@ public class IncomingRestletRequestTest {
 		INPUT_NAME = "input1",
 		SIMULATION_FUNCTION_NAME = "simFunctionName";
 
+	private final int TIMESTEP = 7;
+
 	@Test
 	public void testHandle() {
 		//the author apologizes for this ugly block of code
 		final AtomicReference<SfApplicationRequest> requestReference = new AtomicReference<>();
-		MessageDispatcher dispatcher = new MessageDispatcher<SfApplicationRequest>() {
-			@Override public void dispatch(SfApplicationRequest sfAppReq) {
-				requestReference.set(sfAppReq);
-				SfApplicationResult result = getResultCorrespondingToRequest(sfAppReq);
-				sfAppReq.getCompletableFuture().complete(result);
+		MessageDispatcher<SfApplicationRequest> dispatcher = new MessageDispatcher<SfApplicationRequest>() {
+			@Override
+			public void dispatch(SfApplicationRequest request) {
+				requestReference.set(request);
+				SfApplicationResult result = getResultCorrespondingToRequest(request);
+				request.getCompletableFuture().complete(result);
 			}
 		};
 		SfalDao sfalDao = new SfalDaoInMemoryImpl();
 		sfalDao.save(DATA_STORE_KEY_FOR_INPUT, STORED_INPUT_VALUE);
-		IncomingRequestRestlet restlet = new IncomingRequestRestlet(sfalDao, dispatcher, 10);
-		Response response = restlet.handle(getRequestWithJsonEntity());
+		IncomingRequestRestlet requestRestlet = new IncomingRequestRestlet(sfalDao, dispatcher, 10);
+		JsonEntityPairsExtractor extractor = new JsonEntityPairsExtractor(requestRestlet);
+		Response response = extractor.handle(getRequestWithJsonEntity());
 		Assert.assertTrue(response.getStatus().isSuccess());
 
-
 		//test all of the attributes of the SfApplicationRequest that was generated
-		SfApplicationRequest sfAppRequest = requestReference.get();
-		Assert.assertEquals(SIMULATION_FUNCTION_NAME, sfAppRequest.getSimulationFunctionName().getName());
-		Assert.assertEquals(7, sfAppRequest.getTimestep());
-		Assert.assertEquals(1, sfAppRequest.getInputs().size());
-		Assert.assertEquals(STORED_INPUT_VALUE, sfAppRequest.getInputs().get(INPUT_NAME));
-		Assert.assertEquals(1, sfAppRequest.getOutputNames().size());
-		Assert.assertTrue(sfAppRequest.getOutputNames().contains(OUTPUT_NAME));
+		SfApplicationRequest request = requestReference.get();
+		Assert.assertNotNull(request);
+		Assert.assertEquals(SIMULATION_FUNCTION_NAME, request.getSimulationFunctionName().getName());
+		Assert.assertEquals(TIMESTEP, request.getTimestep());
+		Assert.assertEquals(1, request.getInputs().size());
+		Assert.assertEquals(STORED_INPUT_VALUE, request.getInputs().get(INPUT_NAME));
+		Assert.assertEquals(1, request.getOutputNames().size());
+		Assert.assertTrue(request.getOutputNames().contains(OUTPUT_NAME));
 
 		//test that the outputs were saved
 		Object savedOutput = sfalDao.lookup(DATA_STORE_KEY_FOR_OUTPUT);
@@ -69,22 +74,22 @@ public class IncomingRestletRequestTest {
 			}
 		};
 		SfalDao sfalDao = new SfalDaoInMemoryImpl();
-		IncomingRequestRestlet restlet = new IncomingRequestRestlet(null, sfalDao, exceptionDispatcher, 10);
-		Response response = restlet.handle(getRequestWithJsonEntity());
+		IncomingRequestRestlet restlet = new IncomingRequestRestlet(sfalDao, exceptionDispatcher, 10);
+		JsonEntityPairsExtractor extractor = new JsonEntityPairsExtractor(restlet);
+		Response response = extractor.handle(getRequestWithJsonEntity());
 		Assert.assertTrue(response.getStatus().isServerError());
 	}
 
 	private Request getRequestWithJsonEntity() {
 		Request request = new Request(Method.POST, "resource");
-		JsonElement jsonElement = getJsonElement();
-		request.getAttributes().put(JsonEntityExtractor.ENTITY_ATTRIBUTE_NAME, jsonElement);
+		request.setEntity(getJsonElement().toString(), MediaType.APPLICATION_JSON);
 		return request;
 	}
 
 	private JsonElement getJsonElement() {
 		JsonObject jsonObject = new JsonObject();
 		jsonObject.addProperty("model", SIMULATION_FUNCTION_NAME);
-		jsonObject.addProperty("timestep", 7);
+		jsonObject.addProperty("timestep", TIMESTEP);
 		jsonObject.add("inputs", getInputs());
 		jsonObject.add("outputs", getOutputs());
 		return jsonObject;
@@ -103,9 +108,9 @@ public class IncomingRestletRequestTest {
 	}
 
 	private SfApplicationResult getResultCorrespondingToRequest(SfApplicationRequest request) {
-		Map<String, Object> outputs = new HashMap<>();
-		request.getOutputNames().forEach( name -> outputs.put(name, OUTPUT_VALUE_FOR+name));
+		Map<String, Object> outputsNameToValueMap = new HashMap<>();
+		request.getOutputNames().forEach( name -> outputsNameToValueMap.put(name, OUTPUT_VALUE_FOR+name));
 		return new SfApplicationResult(request.getSimulationFunctionName(), request.getTimestep(),
-				outputs, new SfpName(RandomStringUtils.randomAlphanumeric(8)));
+				outputsNameToValueMap, new SfpName(RandomStringUtils.randomAlphanumeric(8)));
 	}
 }
