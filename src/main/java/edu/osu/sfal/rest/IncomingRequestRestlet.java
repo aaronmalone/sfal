@@ -43,12 +43,11 @@ public class IncomingRequestRestlet extends Restlet {
 	@Override
 	public void handle(Request request, Response response) {
 		super.handle(request, response);
-		logger.trace("Received incoming request: " + request);
+		logger.debug("Received incoming request: " + request);
 		if(!response.getStatus().isError()) {
-			logger.warn("Response has error status: " + response.getStatus());
 			handleInternal(request, response);
 		} else {
-			response.setStatus(Status.SUCCESS_NO_CONTENT);
+			logger.warn("Response has error status: " + response.getStatus());
 		}
 	}
 
@@ -59,6 +58,7 @@ public class IncomingRequestRestlet extends Restlet {
 			requestDispatcher.dispatch(sfApplicationRequest);
 			SfApplicationResult result = waitForResults(sfApplicationRequest);
 			saveResults(outputsToDataKeys, result);
+			response.setStatus(Status.SUCCESS_NO_CONTENT);
 		} catch(Exception e) {
 			logger.warn("Exception while processing request.", e);
 			response.setStatus(Status.SERVER_ERROR_INTERNAL, e);
@@ -102,7 +102,7 @@ public class IncomingRequestRestlet extends Restlet {
 			Future<SfApplicationResult> future = request.getCompletableFuture();
 			return future.get(timeoutMillis, TimeUnit.MILLISECONDS);
 		} catch (InterruptedException | ExecutionException | TimeoutException e) {
-			throw new RuntimeException("Exception while waitinf for calculation result.", e);
+			throw new RuntimeException("Exception while waiting for calculation result.", e);
 		}
 	}
 
