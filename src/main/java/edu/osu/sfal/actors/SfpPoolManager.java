@@ -3,8 +3,11 @@ package edu.osu.sfal.actors;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
+import akka.event.Logging;
+import akka.event.LoggingAdapter;
 import com.google.common.collect.Maps;
 import edu.osu.lapis.LapisApi;
+import edu.osu.lapis.util.Sleep;
 import edu.osu.sfal.messages.SfApplicationRequest;
 import edu.osu.sfal.messages.SfpNotBusy;
 import edu.osu.sfal.messages.sfp.HeartbeatFailed;
@@ -18,6 +21,8 @@ import java.util.Map;
 import java.util.Queue;
 
 public class SfpPoolManager extends UntypedActor {
+
+	private final LoggingAdapter logger = Logging.getLogger(getContext().system(), this);
 
 	static final boolean BUSY = true, NOT_BUSY = false;
 
@@ -36,6 +41,7 @@ public class SfpPoolManager extends UntypedActor {
 
 	@Override
 	public void onReceive(Object message) throws Exception {
+		logger.debug("Received message {} of type {}", message, message.getClass().getSimpleName());
 		if(message instanceof NewSfp) {
 			handleNewSfpRegistration((NewSfp) message);
 		} else if(message instanceof SfApplicationRequest) {
@@ -60,7 +66,7 @@ public class SfpPoolManager extends UntypedActor {
 
 	private ActorRef createSfpActor(SfpName sfpName) {
 		Props props = Props.create(SfpActor.class, simulationFunctionName, sfpName, lapisApi);
-		return getContext().actorOf(props);
+		return getContext().actorOf(props.withDispatcher("pinned-dispatcher"));
 	}
 
 	/**

@@ -59,6 +59,7 @@ public class IncomingRequestRestlet extends Restlet {
 			SfApplicationResult result = waitForResults(sfApplicationRequest);
 			saveResults(outputsToDataKeys, result);
 			response.setStatus(Status.SUCCESS_NO_CONTENT);
+			logger.debug("Successfully completed request.");
 		} catch(Exception e) {
 			logger.warn("Exception while processing request.", e);
 			response.setStatus(Status.SERVER_ERROR_INTERNAL, e);
@@ -99,6 +100,7 @@ public class IncomingRequestRestlet extends Restlet {
 
 	private SfApplicationResult waitForResults(SfApplicationRequest request) {
 		try {
+			logger.trace("Waiting for results...");
 			Future<SfApplicationResult> future = request.getCompletableFuture();
 			return future.get(timeoutMillis, TimeUnit.MILLISECONDS);
 		} catch (InterruptedException | ExecutionException | TimeoutException e) {
@@ -107,6 +109,7 @@ public class IncomingRequestRestlet extends Restlet {
 	}
 
 	private void saveResults(Map<String, String> outputNameToDataStoreKey, SfApplicationResult result) {
+		logger.trace("Saving results...");
 		Map<String, Object> outputValuesMap = result.getOutputs();
 		outputNameToDataStoreKey.forEach(
 				(outputName, dataStoreKey) -> {

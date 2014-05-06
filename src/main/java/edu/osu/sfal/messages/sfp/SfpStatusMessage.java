@@ -31,4 +31,9 @@ public abstract class SfpStatusMessage {
 			return false;
 		}
 	}
+
+	@Override
+	public String toString() {
+		return getClass().getName() + "(" + sfpName.getName() + ")";
+	}
 }
