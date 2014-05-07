@@ -68,13 +68,13 @@ public class IncomingRestletRequestTest {
 
 	@Test
 	public void testHandleWithException() {
-		MessageDispatcher<SfApplicationRequest> exceptionDispatcher = new MessageDispatcher<SfApplicationRequest>() {
+		MessageDispatcher<SfApplicationRequest> dispatcher = new MessageDispatcher<SfApplicationRequest>() {
 			@Override public void dispatch(SfApplicationRequest message) {
-				throw new RuntimeException("This exception is what we expected for the test.");
+				//do nothing
 			}
 		};
 		SfalDao sfalDao = new SfalDaoInMemoryImpl();
-		IncomingRequestRestlet restlet = new IncomingRequestRestlet(sfalDao, exceptionDispatcher, 10);
+		IncomingRequestRestlet restlet = new IncomingRequestRestlet(sfalDao, dispatcher, 10);
 		JsonEntityPairsExtractor extractor = new JsonEntityPairsExtractor(restlet);
 		Response response = extractor.handle(getRequestWithJsonEntity());
 		Assert.assertTrue(response.getStatus().isServerError());
