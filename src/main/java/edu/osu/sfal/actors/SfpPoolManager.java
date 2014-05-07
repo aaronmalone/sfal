@@ -41,6 +41,7 @@ public class SfpPoolManager extends UntypedActor {
 	@Override
 	public void onReceive(Object message) throws Exception {
 		logger.debug("Received message {} of type {}", message, message.getClass().getSimpleName());
+		logger.debug("Current thread: {}", Thread.currentThread());
 		if(message instanceof NewSfp) {
 			handleNewSfpRegistration((NewSfp) message);
 		} else if(message instanceof SfApplicationRequest) {
@@ -64,8 +65,10 @@ public class SfpPoolManager extends UntypedActor {
 	}
 
 	private ActorRef createSfpActor(SfpName sfpName) {
-		Props props = Props.create(SfpActor.class, simulationFunctionName, sfpName, lapisApi);
-		ActorRef actorRef = getContext().actorOf(props.withDispatcher("pinned-dispatcher"));
+		Props props =
+				Props.create(SfpActor.class, simulationFunctionName, sfpName, lapisApi)
+						.withDispatcher("pinned-dispatcher");
+		ActorRef actorRef = getContext().actorOf(props);
 		logger.info("Created new SfpActor: {}", actorRef);
 		return actorRef;
 	}

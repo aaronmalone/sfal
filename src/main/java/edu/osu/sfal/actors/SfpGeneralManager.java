@@ -30,7 +30,8 @@ public class SfpGeneralManager extends UntypedActor {
 
 	@Override
 	public void onReceive(Object message) throws Exception {
-		logger.info("Received message: {}", message);
+		logger.info("Received debug: {}", message);
+		logger.debug("Current thread: {}", Thread.currentThread());
 		if(message instanceof NewSfp) {
 			handleNewSfp((NewSfp) message);
 		} else if(message instanceof SfApplicationRequest) {

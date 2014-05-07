@@ -1,6 +1,7 @@
 package edu.osu.sfal.actors;
 
 import akka.actor.ActorRef;
+import akka.actor.SupervisorStrategy;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -68,6 +69,7 @@ public class SfpActor extends UntypedActor {
 
 	@Override public void onReceive(Object message) throws Exception {
 		logger.debug("Received message {} of type {}", message, message.getClass().getSimpleName());
+		logger.debug("Current thread: {}", Thread.currentThread());
 		if(message instanceof SfApplicationRequest) {
 			handleSfApplicationRequest((SfApplicationRequest) message);
 		} else if(message == CHECK_ON_CALCULATION) {
@@ -140,8 +142,7 @@ public class SfpActor extends UntypedActor {
 		Map<String, Object> outputValues = getOutputValuesFromCurrentCalculation();
 		SfApplicationResult result = createsSfApplicationResultForCurrentCalculation(outputValues);
 		completeAndClearCurrentRequest(result);
-		SfpNotBusy sfpNotBusy = new SfpNotBusy(simulationFunctionName, sfpName);
-		this.getContext().parent().tell(sfpNotBusy, getSelf());
+		sendNotBusyMessage();
 	}
 
 	private Map<String, Object> getOutputValuesFromCurrentCalculation() {
@@ -207,6 +208,18 @@ public class SfpActor extends UntypedActor {
 
 	private String getNodeName() {
 		return sfpName.getName();
+	}
+
+	private void sendNotBusyMessage() {
+		logger.debug("Sending not-busy message.");
+		SfpNotBusy sfpNotBusy = new SfpNotBusy(simulationFunctionName, sfpName);
+		this.getContext().parent().tell(sfpNotBusy, getSelf());
+	}
+
+	@Override
+	public void postRestart(Throwable reason) throws Exception {
+		sendNotBusyMessage();
+		super.postRestart(reason);
 	}
 
 	@VisibleForTesting SfApplicationRequest getCurrentRequest() {
