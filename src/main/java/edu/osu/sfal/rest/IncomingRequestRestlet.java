@@ -82,6 +82,10 @@ public class IncomingRequestRestlet extends Restlet {
 			String inputName = entry.getKey();
 			String dataStoreKey = entry.getValue().getAsString();
 			Object value = sfalDao.lookup(dataStoreKey);
+			//no values should be null
+			if(value == null) {
+				throw new NullPointerException("null data for key " + dataStoreKey);
+			}
 			returnMap.put(inputName, value);
 		}
 		return returnMap;
