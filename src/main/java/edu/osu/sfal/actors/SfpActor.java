@@ -1,7 +1,6 @@
 package edu.osu.sfal.actors;
 
 import akka.actor.ActorRef;
-import akka.actor.SupervisorStrategy;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -16,6 +15,7 @@ import edu.osu.sfal.messages.sfp.HeartbeatFailed;
 import edu.osu.sfal.util.SfpName;
 import edu.osu.sfal.util.SimulationFunctionName;
 import org.apache.commons.lang3.Validate;
+import scala.Option;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.duration.FiniteDuration;
 
@@ -220,6 +220,18 @@ public class SfpActor extends UntypedActor {
 	public void postRestart(Throwable reason) throws Exception {
 		sendNotBusyMessage();
 		super.postRestart(reason);
+	}
+
+	@Override
+	public void aroundPreRestart(Throwable reason, Option<Object> message) {
+		if(currentRequest != null) {
+			logger.warning("Stopping actor while processing request {}", currentRequest);
+			Exception exception = new IllegalStateException("SfpActor stopped during request handling.", reason);
+			currentRequest.getCompletableFuture().completeExceptionally(exception);
+		} else {
+			logger.warning("Stopping actor, but no request currently being processed");
+		}
+		super.aroundPreRestart(reason, message);
 	}
 
 	@VisibleForTesting SfApplicationRequest getCurrentRequest() {

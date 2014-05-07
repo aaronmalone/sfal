@@ -1,7 +1,7 @@
 package edu.osu.sfal.actors
 
 import edu.osu.sfal.messages.{SfpNotBusy, SfApplicationRequest}
-import akka.testkit.{TestProbe, TestActorRef}
+import akka.testkit.TestActorRef
 import akka.actor._
 import java.util.HashMap
 import edu.osu.sfal.messages.sfp.{HeartbeatFailed, NewSfp}

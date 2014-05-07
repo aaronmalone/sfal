@@ -1,5 +1,6 @@
 package edu.osu.sfal.rest;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -17,10 +18,8 @@ import org.restlet.data.Status;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import static edu.osu.sfal.rest.AttributeUtil.getAttribute;
 
@@ -61,9 +60,10 @@ public class IncomingRequestRestlet extends Restlet {
 			response.setStatus(Status.SUCCESS_NO_CONTENT);
 			logger.debug("Successfully completed request.");
 		} catch(Exception e) {
+			Throwable cause = Throwables.getRootCause(e);
 			logger.warn("Exception while processing request.", e);
-			response.setStatus(Status.SERVER_ERROR_INTERNAL, e);
-			response.setEntity("Exception while processing request: " + e.getMessage(), MediaType.TEXT_PLAIN);
+			response.setStatus(Status.SERVER_ERROR_INTERNAL, cause);
+			response.setEntity("Exception while processing request: " + cause.getMessage(), MediaType.TEXT_PLAIN);
 		}
 	}
 
@@ -102,14 +102,10 @@ public class IncomingRequestRestlet extends Restlet {
 		return map;
 	}
 
-	private SfApplicationResult waitForResults(SfApplicationRequest request) {
-		try {
-			logger.trace("Waiting for results...");
-			Future<SfApplicationResult> future = request.getCompletableFuture();
-			return future.get(timeoutMillis, TimeUnit.MILLISECONDS);
-		} catch (InterruptedException | ExecutionException | TimeoutException e) {
-			throw new RuntimeException("Exception while waiting for calculation result.", e);
-		}
+	private SfApplicationResult waitForResults(SfApplicationRequest request) throws Exception {
+		logger.trace("Waiting for results...");
+		Future<SfApplicationResult> future = request.getCompletableFuture();
+		return future.get(timeoutMillis, TimeUnit.MILLISECONDS);
 	}
 
 	private void saveResults(Map<String, String> outputNameToDataStoreKey, SfApplicationResult result) {

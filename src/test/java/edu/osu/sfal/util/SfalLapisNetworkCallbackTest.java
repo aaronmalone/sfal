@@ -1,6 +1,5 @@
 package edu.osu.sfal.util;
 
-import com.google.common.base.Joiner;
 import edu.osu.lapis.LapisApi;
 import edu.osu.lapis.network.LapisNode;
 import edu.osu.sfal.messages.sfp.NewSfp;
