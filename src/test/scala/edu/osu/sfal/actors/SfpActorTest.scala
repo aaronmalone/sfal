@@ -5,14 +5,15 @@ import akka.testkit.TestActorRef
 import org.mockito.Mockito.{when, verify, reset, verifyNoMoreInteractions}
 import edu.osu.lapis.Flags
 import edu.osu.sfal.messages.{SfApplicationResult, SfApplicationRequest}
-import scala.collection.JavaConversions.{mapAsJavaMap,setAsJavaSet}
-import edu.osu.sfal.messages.sfp.HeartbeatFailed
+import scala.collection.JavaConversions.{mapAsJavaMap, setAsJavaSet}
+import edu.osu.sfal.messages.sfp.HeartbeatFailedMsg
+import edu.osu.lapis.Constants.SimulationFunction._
 
 
 class SfpActorTest extends SfalActorTestBase {
 
-  val ReadyToCalculate = SfpActor.READY_TO_CALCULATE_VAR_NAME
-  val FinishedCalculating = SfpActor.FINISHED_CALCULATING_VAR_NAME
+  val ReadyToCalculate = READY_TO_CALCULATE_VAR_NAME
+  val FinishedCalculating = FINISHED_CALCULATING_VAR_NAME
 
   class SfpActorTestFixture extends SfalActorTestFixture {
     SfpActor.setHeartbeatPeriodMillis(15)
@@ -24,13 +25,13 @@ class SfpActorTest extends SfalActorTestBase {
 
     expectMsg(SfpActor.HEARTBEAT_MSG) // heartbeat check triggered on construction
 
-    mockFlagCall(ReadyToCalculate, false)
-    mockFlagCall(FinishedCalculating, true)
+    mockFlagCall(ReadyToCalculate, flagValue = false)
+    mockFlagCall(FinishedCalculating, flagValue = true)
   }
 
   new SfpActorTestFixture() {
 
-    val inputsMap: Map[String, AnyRef] = Map("input1"->"INPUT_VALUE1", "input2"->"INPUT_VALUE_2")
+    val inputsMap: Map[String, AnyRef] = Map("input1" -> "INPUT_VALUE1", "input2" -> "INPUT_VALUE_2")
     val outputNamesSet = Set("output1")
     val request = new SfApplicationRequest(simulationFunctionName, 0, inputsMap, outputNamesSet)
 
@@ -50,7 +51,7 @@ class SfpActorTest extends SfalActorTestBase {
         }
       }
       "set the readyToCalculate flag on the SFP" in {
-        verify(mockLapisApi).set(nodeName, ReadyToCalculate, Flags.FLAG_VALUE_TRUE)
+        verify(mockLapisApi).set(nodeName, ReadyToCalculate, Flags.getFlagTrue)
       }
       "schedule a check on the calculation" in {
         expectMsg(SfpActor.CHECK_ON_CALCULATION)
@@ -60,7 +61,7 @@ class SfpActorTest extends SfalActorTestBase {
     "When an SFP actor receives a check-on-calculation message, it " should {
       "check whether the calculation has finished" in {
         reset(mockLapisApi)
-        mockFlagCall(FinishedCalculating, false)
+        mockFlagCall(FinishedCalculating, flagValue = false)
         testActorRef ! SfpActor.CHECK_ON_CALCULATION
         verify(mockLapisApi).getArrayOfDouble(nodeName, FinishedCalculating)
       }
@@ -73,7 +74,7 @@ class SfpActorTest extends SfalActorTestBase {
   new SfpActorTestFixture() {
 
     val outputName = "outputName1"
-    val map: Map[String,AnyRef] = Map()
+    val map: Map[String, AnyRef] = Map()
     val set: Set[String] = Set(outputName)
     val request = new SfApplicationRequest(simulationFunctionName, 0, map, set)
 
@@ -83,8 +84,9 @@ class SfpActorTest extends SfalActorTestBase {
 
         expectMsg(SfpActor.CHECK_ON_CALCULATION)
         reset(mockLapisApi)
-        mockFlagCall(FinishedCalculating, true)
-        mockFlagCall(ReadyToCalculate, false)
+        mockFlagCall(FinishedCalculating, flagValue = true)
+        mockFlagCall(ReadyToCalculate, flagValue = false)
+        when(mockLapisApi.getObject(nodeName, outputName)).thenReturn(new Object(), null)
 
         testActorRef ! SfpActor.CHECK_ON_CALCULATION
 
@@ -107,7 +109,7 @@ class SfpActorTest extends SfalActorTestBase {
 
   new SfpActorTestFixture() {
 
-    val request = new SfApplicationRequest(simulationFunctionName, 0, Map[String,Object](), Set[String]())
+    val request = new SfApplicationRequest(simulationFunctionName, 0, Map[String, Object](), Set[String]())
 
     "When an SFP actor receives a heartbeat message, it" should {
       "check whether the corresponding LAPIS node is alive" in {
@@ -127,7 +129,7 @@ class SfpActorTest extends SfalActorTestBase {
         when(mockLapisApi.doHeartbeatCheckReturnNodeIsLive(nodeName)).thenReturn(false)
         watch(testActorRef)
         testActorRef ! SfpActor.HEARTBEAT_MSG
-        expectMsg(new HeartbeatFailed(simulationFunctionName, sfpName))
+        expectMsg(new HeartbeatFailedMsg(simulationFunctionName, sfpName))
       }
       "shut down if the node is not alive" in {
         val terminated = expectMsgClass(classOf[Terminated])
