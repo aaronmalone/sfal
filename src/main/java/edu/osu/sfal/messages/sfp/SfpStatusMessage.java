@@ -22,7 +22,7 @@ public abstract class SfpStatusMessage {
 
 	@Override
 	public boolean equals(Object obj) {
-		if(obj != null) {
+		if (obj != null) {
 			SfpStatusMessage that = (SfpStatusMessage) obj;
 			return getClass().equals(obj.getClass())
 					&& this.simulationFunctionName.equals(that.simulationFunctionName)

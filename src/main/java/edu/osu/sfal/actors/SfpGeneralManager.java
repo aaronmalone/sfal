@@ -32,9 +32,9 @@ public class SfpGeneralManager extends UntypedActor {
 	public void onReceive(Object message) throws Exception {
 		logger.info("Received message: {}", message);
 		logger.debug("Current thread: {}", Thread.currentThread());
-		if(message instanceof NewSfpMsg) {
+		if (message instanceof NewSfpMsg) {
 			handleNewSfp((NewSfpMsg) message);
-		} else if(message instanceof SfApplicationRequest) {
+		} else if (message instanceof SfApplicationRequest) {
 			handleSfApplicationRequest((SfApplicationRequest) message);
 		}
 	}
@@ -43,7 +43,7 @@ public class SfpGeneralManager extends UntypedActor {
 		SimulationFunctionName sf = newSfp.getSimulationFunctionName();
 		logger.info("New SFP {} for simulation function {}", newSfp.getSfpName(), sf.getName());
 		final ActorRef actorRef;
-		if(sfpPoolMap.containsKey(sf)) {
+		if (sfpPoolMap.containsKey(sf)) {
 			actorRef = sfpPoolMap.get(sf);
 		} else {
 			actorRef = createAndStoreSfpPoolManagerActor(sf);
@@ -53,7 +53,7 @@ public class SfpGeneralManager extends UntypedActor {
 
 	private void handleSfApplicationRequest(SfApplicationRequest sfApplicationRequest) {
 		SimulationFunctionName sf = sfApplicationRequest.getSimulationFunctionName();
-		if(sfpPoolMap.containsKey(sf)) {
+		if (sfpPoolMap.containsKey(sf)) {
 			ActorRef actorRef = sfpPoolMap.get(sf);
 			logger.info("Passing request to SFP: {}", actorRef);
 			actorRef.tell(sfApplicationRequest, getSelf());

@@ -70,12 +70,14 @@ public class SfalLapisNetworkCallbackTest {
 		assertTrue(messageReference.get() instanceof RemoveSfp);
 		SfpStatusMessage sfpStatus = (SfpStatusMessage) messageReference.get();
 		commonAssertions(sfpStatus);
-	};
+	}
+
+	;
 
 	private void commonAssertions(SfpStatusMessage sfpStatus) {
 		SimulationFunctionName simFunNameInMsg = sfpStatus.getSimulationFunctionName();
 		SfpName sfpNameInMsg = sfpStatus.getSfpName();
-		assertEquals(new SfpName(nodeName),  sfpNameInMsg);
+		assertEquals(new SfpName(nodeName), sfpNameInMsg);
 		assertEquals(new SimulationFunctionName(simulationFunctionName), simFunNameInMsg);
 	}
 }

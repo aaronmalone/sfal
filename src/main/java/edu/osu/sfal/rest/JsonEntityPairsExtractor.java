@@ -16,19 +16,19 @@ import static edu.osu.sfal.rest.AttributeUtil.getAttribute;
 public class JsonEntityPairsExtractor extends JsonEntityExtractor {
 
 	public JsonEntityPairsExtractor(Restlet next) {
-        super(next);
-    }
+		super(next);
+	}
 
-    @Override
-    protected int beforeHandle(Request request, Response response) {
-        int continueStatus = super.beforeHandle(request, response); //required for entity extraction
-        if(continueStatus == CONTINUE) {
-            extractPairsFromJsonEntityAndSetAttributes(request);
-        }
-        return continueStatus;
-    }
+	@Override
+	protected int beforeHandle(Request request, Response response) {
+		int continueStatus = super.beforeHandle(request, response); //required for entity extraction
+		if (continueStatus == CONTINUE) {
+			extractPairsFromJsonEntityAndSetAttributes(request);
+		}
+		return continueStatus;
+	}
 
-    private void extractPairsFromJsonEntityAndSetAttributes(Request request) {
+	private void extractPairsFromJsonEntityAndSetAttributes(Request request) {
 		JsonElement entity = getAttribute(request, ENTITY_ATTRIBUTE_NAME, JsonElement.class);
 		Map<String, Object> pairsMap = extractPairsFromJsonEntity(entity);
 		request.getAttributes().putAll(pairsMap);
@@ -41,7 +41,7 @@ public class JsonEntityPairsExtractor extends JsonEntityExtractor {
 			Map<String, Object> returnMap = Maps.newHashMapWithExpectedSize(entrySet.size());
 			entrySet.forEach(entry -> {
 				Object value = transformValue(entry.getValue());
-				if(value != null) {
+				if (value != null) {
 					returnMap.put(entry.getKey(), value);
 				}
 			});
@@ -61,9 +61,9 @@ public class JsonEntityPairsExtractor extends JsonEntityExtractor {
 	 * objects for certain types of arguments.
 	 */
 	private Object transformValue(JsonElement jsonElement) {
-		if(jsonElement.isJsonPrimitive()) {
+		if (jsonElement.isJsonPrimitive()) {
 			return transformJsonPrimitive(jsonElement.getAsJsonPrimitive());
-		} else if(jsonElement.isJsonNull()) {
+		} else if (jsonElement.isJsonNull()) {
 			return null;
 		} else {
 			return jsonElement;
@@ -71,11 +71,11 @@ public class JsonEntityPairsExtractor extends JsonEntityExtractor {
 	}
 
 	private Object transformJsonPrimitive(JsonPrimitive primitive) {
-		if(primitive.isString()) {
+		if (primitive.isString()) {
 			return primitive.getAsString();
-		} else if(primitive.isBoolean()) {
+		} else if (primitive.isBoolean()) {
 			return primitive.getAsBoolean();
-		} else if(primitive.isNumber()) {
+		} else if (primitive.isNumber()) {
 			return primitive.getAsNumber();
 		} else {
 			throw new IllegalArgumentException("Unable to transform JSON primitive: " + primitive);

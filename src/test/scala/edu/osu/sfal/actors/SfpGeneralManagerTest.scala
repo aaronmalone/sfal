@@ -22,7 +22,7 @@ class SfpGeneralManagerTest extends SfalActorTestBase {
   "The SfpGeneralManager" when {
     "it receives a " + classOf[NewSfpMsg].getName + " message," should {
       "should create a new SfpPoolManager if none exists for the simulation function " +
-          "and dispatch the NewSfp message to the SfpPoolManager" in {
+        "and dispatch the NewSfp message to the SfpPoolManager" in {
         new SfpGeneralManagerTestFixture() {
           testActorRef ! newSfp
           assert(sfpPoolManagerActor != null)
@@ -33,7 +33,8 @@ class SfpGeneralManagerTest extends SfalActorTestBase {
       "dispatch the message to the corresponding SfpPoolManager" in {
         new SfpGeneralManagerTestFixture() {
           testActorRef ! newSfp
-          assert(sfpGeneralManager.sfpPoolMap.size === 1) //one in map
+          assert(sfpGeneralManager.sfpPoolMap.size === 1)
+          //one in map
           val testProbe = TestProbe()
           sfpGeneralManager.sfpPoolMap.put(simulationFunctionName, testProbe.ref)
           val secondNewSfpMessage = new NewSfpMsg(simulationFunctionName, new SfpName("secondSFP"))

@@ -24,7 +24,7 @@ public class DataRestlet extends Restlet {
 	public void handle(Request request, Response response) {
 		super.handle(request, response);
 		String key = getKeyAttribute(request);
-		if(key != null) {
+		if (key != null) {
 			returnDataForOneKey(key, response);
 		} else {
 			returnAllData(response);

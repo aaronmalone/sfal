@@ -68,7 +68,7 @@ public class SfalConfiguration {
 
 	private static String getProperty(Properties properties, String propertyName) {
 		String value = properties.getProperty(propertyName);
-		if(value == null || value.isEmpty()) {
+		if (value == null || value.isEmpty()) {
 			throw new IllegalStateException("Property '" + propertyName + "' not provided.");
 		}
 		return value;

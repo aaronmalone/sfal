@@ -39,7 +39,7 @@ public class Main {
 	private static Properties getProperties(String[] propertyFilesNames) throws IOException {
 		Validate.notEmpty(propertyFilesNames, "properties files names array is empty");
 		Properties properties = new Properties();
-		for(String propsFile : propertyFilesNames) {
+		for (String propsFile : propertyFilesNames) {
 			properties.load(Files.newReader(new File(propsFile), Charset.defaultCharset()));
 		}
 		return properties;
@@ -47,7 +47,7 @@ public class Main {
 
 	private static int getPort(Properties properties) {
 		String port = properties.getProperty("sfal.port");
-		if(port == null || port.isEmpty()) {
+		if (port == null || port.isEmpty()) {
 			throw new IllegalStateException("Property 'sfal.port' is missing.");
 		}
 		return Integer.parseInt(port);

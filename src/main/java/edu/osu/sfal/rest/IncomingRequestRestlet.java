@@ -32,8 +32,8 @@ public class IncomingRequestRestlet extends Restlet {
 	private final long timeoutMillis;
 
 	public IncomingRequestRestlet(SfalDao sfalDao,
-			MessageDispatcher<SfApplicationRequest> requestDispatcher,
-			long timeoutMillis) {
+								  MessageDispatcher<SfApplicationRequest> requestDispatcher,
+								  long timeoutMillis) {
 		this.sfalDao = sfalDao;
 		this.requestDispatcher = requestDispatcher;
 		this.timeoutMillis = timeoutMillis;
@@ -43,7 +43,7 @@ public class IncomingRequestRestlet extends Restlet {
 	public void handle(Request request, Response response) {
 		super.handle(request, response);
 		logger.debug("Received incoming request: " + request);
-		if(!response.getStatus().isError()) {
+		if (!response.getStatus().isError()) {
 			handleInternal(request, response);
 		} else {
 			logger.warn("Response has error status: " + response.getStatus());
@@ -59,7 +59,7 @@ public class IncomingRequestRestlet extends Restlet {
 			saveResults(outputsToDataKeys, result);
 			response.setStatus(Status.SUCCESS_NO_CONTENT);
 			logger.debug("Successfully completed request.");
-		} catch(Exception e) {
+		} catch (Exception e) {
 			Throwable cause = Throwables.getRootCause(e);
 			logger.warn("Exception while processing request.", e);
 			response.setStatus(Status.SERVER_ERROR_INTERNAL, cause);
@@ -78,12 +78,12 @@ public class IncomingRequestRestlet extends Restlet {
 
 	private Map<String, Object> getSfApplicationRequestInputs(JsonObject jsonObject) {
 		Map<String, Object> returnMap = new HashMap<>();
-		for(Map.Entry<String, JsonElement> entry : jsonObject.entrySet()) {
+		for (Map.Entry<String, JsonElement> entry : jsonObject.entrySet()) {
 			String inputName = entry.getKey();
 			String dataStoreKey = entry.getValue().getAsString();
 			Object value = sfalDao.lookup(dataStoreKey);
 			//no values should be null
-			if(value == null) {
+			if (value == null) {
 				throw new NullPointerException("null data for key " + dataStoreKey);
 			}
 			returnMap.put(inputName, value);
@@ -91,8 +91,8 @@ public class IncomingRequestRestlet extends Restlet {
 		return returnMap;
 	}
 
-	private Map<String,String> toStringMap(JsonObject jsonObject) {
-		Map<String,String> map = Maps.newHashMap();
+	private Map<String, String> toStringMap(JsonObject jsonObject) {
+		Map<String, String> map = Maps.newHashMap();
 		jsonObject
 				.entrySet()
 				.forEach(entry -> {

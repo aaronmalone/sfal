@@ -10,14 +10,14 @@ import com.google.gson.JsonParser
 class DataRestletTest extends FunSuite {
 
   val sfalDao = new SfalDaoInMemoryImpl()
-    val expectedLookupValue = util.Arrays.asList(1.1, 2.2, 3.3)
-    sfalDao.save("keyZero", 0)
-    sfalDao.save("keyOne", expectedLookupValue)
-    sfalDao.save("keyTwo", "hello world")
+  val expectedLookupValue = util.Arrays.asList(1.1, 2.2, 3.3)
+  sfalDao.save("keyZero", 0)
+  sfalDao.save("keyOne", expectedLookupValue)
+  sfalDao.save("keyTwo", "hello world")
 
-    val restlet = new DataRestlet(sfalDao)
+  val restlet = new DataRestlet(sfalDao)
 
-    val parser = new JsonParser()
+  val parser = new JsonParser()
 
   test("Test retrieval of one key") {
     val request = new Request(Method.POST, "resource/cache/keyOne")

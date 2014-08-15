@@ -3,10 +3,10 @@ package edu.osu.sfal.util;
 import com.google.common.base.Preconditions;
 
 public class StringKey {
-	
+
 	private final String name;
 	private final String toStringValue;
-	
+
 	public StringKey(String name) {
 		Preconditions.checkNotNull(name, "name cannot be null");
 		this.name = name;
@@ -24,12 +24,12 @@ public class StringKey {
 
 	@Override
 	public boolean equals(Object that) {
-		if(getClass().isInstance(that)) {
+		if (getClass().isInstance(that)) {
 			String thatName = ((StringKey) that).getName();
-            return this.name.equals(thatName);
-        } else {
-            return false;
-        }
+			return this.name.equals(thatName);
+		} else {
+			return false;
+		}
 	}
 
 	@Override

@@ -23,12 +23,12 @@ import java.util.concurrent.atomic.AtomicReference;
 public class IncomingRestletRequestTest {
 
 	private final String OUTPUT_NAME = "output1",
-		OUTPUT_VALUE_FOR = "outputValueFor-",
-		STORED_INPUT_VALUE = "STORED INPUT VALUE",
-		DATA_STORE_KEY_FOR_INPUT = "DATA_STORE_KEY_FOR_INPUT",
-		DATA_STORE_KEY_FOR_OUTPUT = "DATA_STORE_KEY_FOR_OUTPUT",
-		INPUT_NAME = "input1",
-		SIMULATION_FUNCTION_NAME = "simFunctionName";
+			OUTPUT_VALUE_FOR = "outputValueFor-",
+			STORED_INPUT_VALUE = "STORED INPUT VALUE",
+			DATA_STORE_KEY_FOR_INPUT = "DATA_STORE_KEY_FOR_INPUT",
+			DATA_STORE_KEY_FOR_OUTPUT = "DATA_STORE_KEY_FOR_OUTPUT",
+			INPUT_NAME = "input1",
+			SIMULATION_FUNCTION_NAME = "simFunctionName";
 
 	private final int TIMESTEP = 7;
 
@@ -69,7 +69,8 @@ public class IncomingRestletRequestTest {
 	@Test
 	public void testHandleWithException() {
 		MessageDispatcher<SfApplicationRequest> dispatcher = new MessageDispatcher<SfApplicationRequest>() {
-			@Override public void dispatch(SfApplicationRequest message) {
+			@Override
+			public void dispatch(SfApplicationRequest message) {
 				//do nothing
 			}
 		};
@@ -109,7 +110,7 @@ public class IncomingRestletRequestTest {
 
 	private SfApplicationResult getResultCorrespondingToRequest(SfApplicationRequest request) {
 		Map<String, Object> outputsNameToValueMap = new HashMap<>();
-		request.getOutputNames().forEach( name -> outputsNameToValueMap.put(name, OUTPUT_VALUE_FOR+name));
+		request.getOutputNames().forEach(name -> outputsNameToValueMap.put(name, OUTPUT_VALUE_FOR + name));
 		return new SfApplicationResult(request.getSimulationFunctionName(), request.getTimestep(),
 				outputsNameToValueMap, new SfpName(RandomStringUtils.randomAlphanumeric(8)));
 	}
