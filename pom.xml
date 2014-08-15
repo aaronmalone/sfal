@@ -19,7 +19,7 @@
 		<dependency>
 			<groupId>edu.osu.lapis</groupId>
 			<artifactId>lapis-java-client</artifactId>
-			<version>0.4.1</version>
+			<version>0.7</version>
 		</dependency>
 
 		<dependency>

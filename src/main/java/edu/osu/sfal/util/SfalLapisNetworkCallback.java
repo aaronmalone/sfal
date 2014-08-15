@@ -3,7 +3,7 @@ package edu.osu.sfal.util;
 import edu.osu.lapis.LapisApi;
 import edu.osu.lapis.network.LapisNode;
 import edu.osu.lapis.network.NetworkChangeCallback;
-import edu.osu.sfal.messages.sfp.NewSfp;
+import edu.osu.sfal.messages.sfp.NewSfpMsg;
 import edu.osu.sfal.messages.sfp.RemoveSfp;
 import edu.osu.sfal.messages.sfp.SfpStatusMessage;
 import org.apache.log4j.Logger;
@@ -40,7 +40,7 @@ public class SfalLapisNetworkCallback implements NetworkChangeCallback {
 		logger.info("New node on network: " + lapisNode);
 		waitForNode(lapisNode);
 		SfpInformation info = getSfpInformation(lapisNode);
-		NewSfp newSfp = new NewSfp(info.simulationFunctionName, info.sfpName);
+		NewSfpMsg newSfp = new NewSfpMsg(info.simulationFunctionName, info.sfpName);
 		messageDispatcher.dispatch(newSfp);
 	}
 

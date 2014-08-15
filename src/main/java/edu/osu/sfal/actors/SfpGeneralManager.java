@@ -7,7 +7,7 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import edu.osu.lapis.LapisApi;
 import edu.osu.sfal.messages.SfApplicationRequest;
-import edu.osu.sfal.messages.sfp.NewSfp;
+import edu.osu.sfal.messages.sfp.NewSfpMsg;
 import edu.osu.sfal.util.SimulationFunctionName;
 import org.apache.commons.lang3.Validate;
 
@@ -30,16 +30,16 @@ public class SfpGeneralManager extends UntypedActor {
 
 	@Override
 	public void onReceive(Object message) throws Exception {
-		logger.info("Received debug: {}", message);
+		logger.info("Received message: {}", message);
 		logger.debug("Current thread: {}", Thread.currentThread());
-		if(message instanceof NewSfp) {
-			handleNewSfp((NewSfp) message);
+		if(message instanceof NewSfpMsg) {
+			handleNewSfp((NewSfpMsg) message);
 		} else if(message instanceof SfApplicationRequest) {
 			handleSfApplicationRequest((SfApplicationRequest) message);
 		}
 	}
 
-	private void handleNewSfp(NewSfp newSfp) {
+	private void handleNewSfp(NewSfpMsg newSfp) {
 		SimulationFunctionName sf = newSfp.getSimulationFunctionName();
 		logger.info("New SFP {} for simulation function {}", newSfp.getSfpName(), sf.getName());
 		final ActorRef actorRef;

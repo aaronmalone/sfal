@@ -9,8 +9,8 @@ import com.google.common.collect.Maps;
 import edu.osu.lapis.LapisApi;
 import edu.osu.sfal.messages.SfApplicationRequest;
 import edu.osu.sfal.messages.SfpNotBusy;
-import edu.osu.sfal.messages.sfp.HeartbeatFailed;
-import edu.osu.sfal.messages.sfp.NewSfp;
+import edu.osu.sfal.messages.sfp.HeartbeatFailedMsg;
+import edu.osu.sfal.messages.sfp.NewSfpMsg;
 import edu.osu.sfal.util.SfpName;
 import edu.osu.sfal.util.SimulationFunctionName;
 import org.apache.commons.lang3.Validate;
@@ -32,8 +32,7 @@ public class SfpPoolManager extends UntypedActor {
 	final Map<SfpName, ActorRef> sfpActorMap = Maps.newHashMap();
 	final Map<SfpName, Boolean> sfpBusyMap = Maps.newHashMap();
 
-	public SfpPoolManager(
-			SimulationFunctionName simulationFunctionName, LapisApi lapisApi) {
+	public SfpPoolManager(SimulationFunctionName simulationFunctionName, LapisApi lapisApi) {
 		this.simulationFunctionName = simulationFunctionName;
 		this.lapisApi = lapisApi;
 	}
@@ -42,21 +41,21 @@ public class SfpPoolManager extends UntypedActor {
 	public void onReceive(Object message) throws Exception {
 		logger.debug("Received message {} of type {}", message, message.getClass().getSimpleName());
 		logger.debug("Current thread: {}", Thread.currentThread());
-		if(message instanceof NewSfp) {
-			handleNewSfpRegistration((NewSfp) message);
-		} else if(message instanceof SfApplicationRequest) {
+		if (message instanceof NewSfpMsg) {
+			handleNewSfpRegistration((NewSfpMsg) message);
+		} else if (message instanceof SfApplicationRequest) {
 			handleSfApplicationRequest((SfApplicationRequest) message);
-		} else if(message instanceof SfpNotBusy) {
+		} else if (message instanceof SfpNotBusy) {
 			handleSfpNotBusy(((SfpNotBusy) message).getSfpName());
-		} else if(message instanceof HeartbeatFailed) {
-			handleSfpHeartbeatFailed((HeartbeatFailed) message);
+		} else if (message instanceof HeartbeatFailedMsg) {
+			handleSfpHeartbeatFailed((HeartbeatFailedMsg) message);
 		} else {
 			unhandled(message);
 		}
 	}
 
-	private void handleNewSfpRegistration(NewSfp newSfp) {
-		validateSimFunctionName(newSfp.getSimulationFunctionName());
+	private void handleNewSfpRegistration(NewSfpMsg newSfp) {
+		validateSimFunctionName(newSfp);
 		SfpName sfpName = newSfp.getSfpName();
 		ActorRef actorRef = createSfpActor(sfpName);
 		sfpActorMap.put(sfpName, actorRef);
@@ -77,7 +76,7 @@ public class SfpPoolManager extends UntypedActor {
 	 * Handles the simulation function application request.
 	 */
 	private void handleSfApplicationRequest(SfApplicationRequest sfApplicationRequest) {
-		validateSimFunctionName(sfApplicationRequest.getSimulationFunctionName());
+		validateSimFunctionName(sfApplicationRequest);
 		attemptToDispatchRequest(sfApplicationRequest);
 	}
 
@@ -85,9 +84,9 @@ public class SfpPoolManager extends UntypedActor {
 	 * Dispatches request to an SfpActor if any are not busy. If all are busy, enqueues request.
 	 */
 	private void attemptToDispatchRequest(SfApplicationRequest sfApplicationRequest) {
-		if(isPoolEmptyOfSFPs()) {
+		if (isPoolEmptyOfSFPs()) {
 			handlePoolEmptyOfSFPs(sfApplicationRequest);
-		} else if(allPooledSFPsAreBusy()) {
+		} else if (allPooledSFPsAreBusy()) {
 			logger.debug("All SFPs busy. Queueing request {}", sfApplicationRequest);
 			requestQueue.add(sfApplicationRequest);
 		} else {
@@ -100,13 +99,14 @@ public class SfpPoolManager extends UntypedActor {
 	}
 
 	private void handlePoolEmptyOfSFPs(SfApplicationRequest sfApplicationRequest) {
-		throw new IllegalStateException("Received SfApplicationRequest when pool of SFPs is empty.");
+		throw new IllegalStateException("Received SfApplicationRequest when pool of SFPs is empty. " +
+				"Request was: " + sfApplicationRequest);
 	}
 
 	private boolean allPooledSFPsAreBusy() {
 		Validate.isTrue(!sfpBusyMap.isEmpty());
-		for(boolean busy : sfpBusyMap.values()) {
-			if(!busy) {
+		for (boolean busy : sfpBusyMap.values()) {
+			if (!busy) {
 				return false;
 			}
 		}
@@ -114,11 +114,11 @@ public class SfpPoolManager extends UntypedActor {
 	}
 
 	private void dispatchRequest(SfApplicationRequest sfApplicationRequest) {
-		// may want to implement preferred order in the future.. or now we just grab the first one
-		for(Map.Entry<SfpName,Boolean> entry : sfpBusyMap.entrySet()) {
+		// may want to implement preferred order in the future.. for now we just grab the first one
+		for (Map.Entry<SfpName, Boolean> entry : sfpBusyMap.entrySet()) {
 			SfpName sfp = entry.getKey();
 			boolean busy = entry.getValue();
-			if(!busy) {
+			if (!busy) {
 				//dispatch to this sfp
 				dispatchToSfp(sfp, sfApplicationRequest);
 				entry.setValue(BUSY);
@@ -129,7 +129,7 @@ public class SfpPoolManager extends UntypedActor {
 
 	private void handleSfpNotBusy(SfpName sfpName) {
 		Validate.isTrue(sfpActorMap.containsKey(sfpName));
-		if(requestQueue.isEmpty()) {
+		if (requestQueue.isEmpty()) {
 			setActorBusyness(sfpName, NOT_BUSY);
 		} else {
 			SfApplicationRequest request = requestQueue.poll();
@@ -144,12 +144,12 @@ public class SfpPoolManager extends UntypedActor {
 		actorRef.tell(sfApplicationRequest, getSelf());
 	}
 
-	private void handleSfpHeartbeatFailed(HeartbeatFailed heartbeatFailedMsg) {
+	private void handleSfpHeartbeatFailed(HeartbeatFailedMsg heartbeatFailedMsg) {
 		SfpName sfpName = heartbeatFailedMsg.getSfpName();
 		logger.warning("Removing SFP {}", sfpName.getName());
 		sfpActorMap.remove(sfpName);
 		sfpBusyMap.remove(sfpName);
-		if(sfpActorMap.isEmpty()) {
+		if (sfpActorMap.isEmpty()) {
 			handleNoMoreSfpActors();
 		}
 	}
@@ -159,7 +159,7 @@ public class SfpPoolManager extends UntypedActor {
 				+ "' SFPs available to handle requests.";
 		logger.warning(message);
 		Exception exception = new IllegalStateException(message);
-		while(!requestQueue.isEmpty()) {
+		while (!requestQueue.isEmpty()) {
 			requestQueue.poll().getCompletableFuture().completeExceptionally(exception);
 		}
 	}
@@ -169,7 +169,19 @@ public class SfpPoolManager extends UntypedActor {
 		this.sfpBusyMap.put(sfpName, busy);
 	}
 
-	private void validateSimFunctionName(SimulationFunctionName simFuncName) {
-		Validate.isTrue(this.simulationFunctionName.equals(simFuncName));
+	/**
+	 * Validates that the simulation function name of the new SFP matches the
+	 * simulation function for which this SFP pool manager was created.
+	 */
+	private void validateSimFunctionName(NewSfpMsg newSfpMsg) {
+		Validate.isTrue(this.simulationFunctionName.equals(newSfpMsg.getSimulationFunctionName()));
+	}
+
+	/**
+	 * Validates that the simulation function name of the request matches the
+	 * simulation function for which this SFP pool manager was created.
+	 */
+	private void validateSimFunctionName(SfApplicationRequest sfApplicationRequest) {
+		Validate.isTrue(this.simulationFunctionName.equals(sfApplicationRequest.getSimulationFunctionName()));
 	}
 }

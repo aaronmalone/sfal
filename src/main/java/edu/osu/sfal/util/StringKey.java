@@ -1,6 +1,6 @@
 package edu.osu.sfal.util;
 
-import org.apache.commons.lang3.Validate;
+import com.google.common.base.Preconditions;
 
 public class StringKey {
 	
@@ -8,7 +8,7 @@ public class StringKey {
 	private final String toStringValue;
 	
 	public StringKey(String name) {
-		Validate.notNull(name, "name cannot be null");
+		Preconditions.checkNotNull(name, "name cannot be null");
 		this.name = name;
 		toStringValue = getClass().getSimpleName() + "(" + name + ")";
 	}
@@ -23,9 +23,10 @@ public class StringKey {
 	}
 
 	@Override
-	public boolean equals(Object obj) {
-		if(getClass().isInstance(obj)) {
-            return this.name.equals(((StringKey) obj).getName());
+	public boolean equals(Object that) {
+		if(getClass().isInstance(that)) {
+			String thatName = ((StringKey) that).getName();
+            return this.name.equals(thatName);
         } else {
             return false;
         }

@@ -4,7 +4,7 @@ import edu.osu.sfal.messages.{SfpNotBusy, SfApplicationRequest}
 import akka.testkit.TestActorRef
 import akka.actor._
 import java.util.HashMap
-import edu.osu.sfal.messages.sfp.{HeartbeatFailed, NewSfp}
+import edu.osu.sfal.messages.sfp.{HeartbeatFailedMsg, NewSfpMsg}
 import com.google.common.collect.Sets
 import edu.osu.sfal.util.SfpName
 
@@ -17,11 +17,11 @@ class SfpPoolManagerTest extends SfalActorTestBase {
     val sfpPoolManager = testActorRef.underlyingActor
     val sfApplicationRequest = new SfApplicationRequest(simulationFunctionName, 0,
       new HashMap(), Sets.newHashSet())
-    val newSfp = new NewSfp(simulationFunctionName, sfpName)
+    val newSfp = new NewSfpMsg(simulationFunctionName, sfpName)
   }
 
   "An SfpPoolManager actor," when {
-    "it receives an " + classOf[NewSfp].getName + " message," should {
+    "it receives an " + classOf[NewSfpMsg].getName + " message," should {
       "create an actor and store its ref internally" in {
         new SfpPoolManagerTestFixture() {
           testActorRef ! newSfp
@@ -31,19 +31,19 @@ class SfpPoolManagerTest extends SfalActorTestBase {
       }
     }
 
-    "it receives a " + classOf[HeartbeatFailed].getName + " message," should {
+    "it receives a " + classOf[HeartbeatFailedMsg].getName + " message," should {
       "remove the corresponding SfpActor" in {
         new SfpPoolManagerTestFixture() {
           testActorRef ! newSfp //register the SFP
           assert(sfpPoolManager.sfpActorMap.get(sfpName).isInstanceOf[ActorRef])
 
           //add another SFP
-          val anotherNewSfp: NewSfp = new NewSfp(simulationFunctionName, new SfpName("anotherSFP"))
+          val anotherNewSfp: NewSfpMsg = new NewSfpMsg(simulationFunctionName, new SfpName("anotherSFP"))
           testActorRef ! anotherNewSfp
           assert(2 == sfpPoolManager.sfpActorMap.size())
 
           //send heartbeat failed for first SFP
-          testActorRef ! new HeartbeatFailed(simulationFunctionName, sfpName)
+          testActorRef ! new HeartbeatFailedMsg(simulationFunctionName, sfpName)
           assert(!sfpPoolManager.sfpActorMap.containsKey(sfpName))
           assert(!sfpPoolManager.sfpBusyMap.containsKey(sfpName))
           assert(1 == sfpPoolManager.sfpActorMap.size())

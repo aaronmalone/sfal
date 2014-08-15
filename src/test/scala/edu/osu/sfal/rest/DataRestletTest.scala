@@ -7,7 +7,7 @@ import org.restlet.data.Method
 import java.util
 import com.google.gson.JsonParser
 
-class CacheRestletTest extends FunSuite {
+class DataRestletTest extends FunSuite {
 
   val sfalDao = new SfalDaoInMemoryImpl()
     val expectedLookupValue = util.Arrays.asList(1.1, 2.2, 3.3)
@@ -15,7 +15,7 @@ class CacheRestletTest extends FunSuite {
     sfalDao.save("keyOne", expectedLookupValue)
     sfalDao.save("keyTwo", "hello world")
 
-    val restlet = new CacheRestlet(sfalDao)
+    val restlet = new DataRestlet(sfalDao)
 
     val parser = new JsonParser()
 

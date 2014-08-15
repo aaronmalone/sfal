@@ -15,13 +15,13 @@ public class CouchbaseDao implements SfalDao {
 
 	@Override
 	public Object lookup(String key) {
-		logger.trace("Looking up " + key);
+		logger.debug("Looking up " + key);
 		return couchbaseClient.get(key);
 	}
 
 	@Override
 	public void save(String key, Object value) {
-		logger.trace("Saving " + key);
+		logger.debug("Saving " + key);
 		couchbaseClient.set(key, value);
 	}
 }

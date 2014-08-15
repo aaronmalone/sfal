@@ -7,13 +7,12 @@ import com.couchbase.client.CouchbaseClient;
 import com.couchbase.client.CouchbaseConnectionFactory;
 import com.couchbase.client.CouchbaseConnectionFactoryBuilder;
 import edu.osu.lapis.LapisApi;
-import edu.osu.lapis.network.NetworkChangeCallback;
 import edu.osu.sfal.actors.SfpGeneralManager;
 import edu.osu.sfal.data.CouchbaseDao;
 import edu.osu.sfal.data.SfalDao;
 import edu.osu.sfal.messages.SfApplicationRequest;
 import edu.osu.sfal.messages.sfp.SfpStatusMessage;
-import edu.osu.sfal.rest.CacheRestlet;
+import edu.osu.sfal.rest.DataRestlet;
 import edu.osu.sfal.rest.IncomingRequestRestlet;
 import edu.osu.sfal.rest.JsonEntityPairsExtractor;
 import org.restlet.Restlet;
@@ -28,7 +27,7 @@ import java.util.Properties;
 
 public class SfalConfiguration {
 
-	private final String nodeName;
+	private final String lapisNodeName;
 	private final String coordinatorAddress;
 	private final String couchbaseUrl;
 	private final long nodeReadyTimeoutMillis;
@@ -37,27 +36,27 @@ public class SfalConfiguration {
 	private final Router router;
 
 	public SfalConfiguration(Properties properties) throws IOException {
-		this.nodeName = getProperty(properties, "sfal.nodeName");
+		this.lapisNodeName = getProperty(properties, "sfal.nodeName");
 		this.coordinatorAddress = getProperty(properties, "sfal.network.coordinatorAddress");
 		this.nodeReadyTimeoutMillis = Long.parseLong(getProperty(properties, "sfal.network.nodeReadyTimeoutMillis"));
 		this.requestCompletedTimeout = Long.parseLong(getProperty(properties, "sfal.requestCompletedTimeout"));
 		this.couchbaseUrl = getProperty(properties, "sfal.couchbase.url");
-		this.lapisApi = new LapisApi(nodeName, coordinatorAddress);
+		this.lapisApi = new LapisApi(lapisNodeName, coordinatorAddress); /* the SFAL is a LAPIS coordinator */
 
 		ActorSystem system = ActorSystem.create("SFAL");
 		Props props = Props.create(SfpGeneralManager.class, lapisApi);
-		ActorRef actorRef = system.actorOf(props, "SfpGeneralManager");
-		MessageDispatcher<SfpStatusMessage> statusDispatcher = new ActorRefMessageDispatcher<>(actorRef);
-		NetworkChangeCallback ncc = new SfalLapisNetworkCallback(lapisApi, nodeReadyTimeoutMillis, statusDispatcher);
-		lapisApi.registerNetworkChangeCallback(ncc);
+		ActorRef genManagerActorRef = system.actorOf(props, "SfpGeneralManager");
+		MessageDispatcher<SfpStatusMessage> statusDispatcher = new ActorRefMessageDispatcher<>(genManagerActorRef);
+		lapisApi.registerNetworkChangeCallback(
+				new SfalLapisNetworkCallback(lapisApi, nodeReadyTimeoutMillis, statusDispatcher));
 
 		SfalDao sfalDao = getSfalDao(couchbaseUrl);
-		CacheRestlet cacheRestlet = new CacheRestlet(sfalDao);
+		DataRestlet dataRestlet = new DataRestlet(sfalDao);
 		this.router = new Router();
-		router.attach("/cache", cacheRestlet);
-		router.attach("/cache/{dataStoreKey}", cacheRestlet);
-		MessageDispatcher<SfApplicationRequest> requestDispatcher = new ActorRefMessageDispatcher<>(actorRef);
-		Restlet requestRestlet = new IncomingRequestRestlet(sfalDao, requestDispatcher, requestCompletedTimeout);
+		router.attach("/cache", dataRestlet);
+		router.attach("/cache/{dataStoreKey}", dataRestlet);
+		MessageDispatcher<SfApplicationRequest> reqDispatcher = new ActorRefMessageDispatcher<>(genManagerActorRef);
+		Restlet requestRestlet = new IncomingRequestRestlet(sfalDao, reqDispatcher, requestCompletedTimeout);
 		Validator validator = new Validator();
 		validator.validatePresence("model");
 		validator.validatePresence("timestep");

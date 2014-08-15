@@ -4,7 +4,7 @@ import edu.osu.sfal.messages.SfApplicationRequest
 import akka.testkit.{TestProbe, TestActorRef}
 import akka.actor.Props
 import edu.osu.sfal.util.SfpName
-import edu.osu.sfal.messages.sfp.NewSfp
+import edu.osu.sfal.messages.sfp.NewSfpMsg
 import java.util.HashMap
 import com.google.common.collect.Sets
 
@@ -15,12 +15,12 @@ class SfpGeneralManagerTest extends SfalActorTestBase {
     val testActorRef = TestActorRef.create[SfpGeneralManager](system, props)
     val sfpGeneralManager = testActorRef.underlyingActor
     assert(sfpGeneralManager.sfpPoolMap.isEmpty)
-    val newSfp = new NewSfp(simulationFunctionName, sfpName)
+    val newSfp = new NewSfpMsg(simulationFunctionName, sfpName)
     lazy val sfpPoolManagerActor = sfpGeneralManager.sfpPoolMap.get(simulationFunctionName)
   }
 
   "The SfpGeneralManager" when {
-    "it receives a " + classOf[NewSfp].getName + " message," should {
+    "it receives a " + classOf[NewSfpMsg].getName + " message," should {
       "should create a new SfpPoolManager if none exists for the simulation function " +
           "and dispatch the NewSfp message to the SfpPoolManager" in {
         new SfpGeneralManagerTestFixture() {
@@ -29,14 +29,14 @@ class SfpGeneralManagerTest extends SfalActorTestBase {
         }
       }
     }
-    "it receives a " + classOf[NewSfp].getName + " message for an existing SFP pool," should {
+    "it receives a " + classOf[NewSfpMsg].getName + " message for an existing SFP pool," should {
       "dispatch the message to the corresponding SfpPoolManager" in {
         new SfpGeneralManagerTestFixture() {
           testActorRef ! newSfp
           assert(sfpGeneralManager.sfpPoolMap.size === 1) //one in map
           val testProbe = TestProbe()
           sfpGeneralManager.sfpPoolMap.put(simulationFunctionName, testProbe.ref)
-          val secondNewSfpMessage = new NewSfp(simulationFunctionName, new SfpName("secondSFP"))
+          val secondNewSfpMessage = new NewSfpMsg(simulationFunctionName, new SfpName("secondSFP"))
           testActorRef ! secondNewSfpMessage
           testProbe.expectMsg(secondNewSfpMessage)
           assert(sfpGeneralManager.sfpPoolMap.size === 1) //no new SfpPoolManager actors added

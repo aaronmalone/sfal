@@ -1,6 +1,7 @@
-package edu.osu.sfal.util;
+package edu.osu.sfal;
 
 import com.google.common.io.Files;
+import edu.osu.sfal.util.SfalConfiguration;
 import org.apache.commons.lang3.Validate;
 import org.restlet.Component;
 import org.restlet.data.Protocol;
@@ -46,6 +47,9 @@ public class Main {
 
 	private static int getPort(Properties properties) {
 		String port = properties.getProperty("sfal.port");
+		if(port == null || port.isEmpty()) {
+			throw new IllegalStateException("Property 'sfal.port' is missing.");
+		}
 		return Integer.parseInt(port);
 	}
 }

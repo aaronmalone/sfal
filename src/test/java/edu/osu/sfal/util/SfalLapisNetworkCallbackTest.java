@@ -2,7 +2,7 @@ package edu.osu.sfal.util;
 
 import edu.osu.lapis.LapisApi;
 import edu.osu.lapis.network.LapisNode;
-import edu.osu.sfal.messages.sfp.NewSfp;
+import edu.osu.sfal.messages.sfp.NewSfpMsg;
 import edu.osu.sfal.messages.sfp.RemoveSfp;
 import edu.osu.sfal.messages.sfp.SfpStatusMessage;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -57,7 +57,7 @@ public class SfalLapisNetworkCallbackTest {
 		assertTrue(messageReference.get() == null);
 		callback.onNodeAdd(new LapisNode(nodeName, url));
 		assertTrue(messageReference.get() != null);
-		assertTrue(messageReference.get() instanceof NewSfp);
+		assertTrue(messageReference.get() instanceof NewSfpMsg);
 		SfpStatusMessage sfpStatus = (SfpStatusMessage) messageReference.get();
 		commonAssertions(sfpStatus);
 	}
