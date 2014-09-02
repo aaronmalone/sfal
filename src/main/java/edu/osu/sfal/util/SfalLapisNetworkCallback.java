@@ -18,7 +18,6 @@ public class SfalLapisNetworkCallback implements NetworkChangeCallback {
 		SfpName sfpName;
 	}
 
-	//TODO MOVE TO CONSTANTS
 	static final String SIMULATION_FUNCTION_NAME = "SIMULATION_FUNCTION_NAME";
 
 	private final Logger logger = Logger.getLogger(getClass());

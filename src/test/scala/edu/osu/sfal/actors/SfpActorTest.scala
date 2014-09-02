@@ -7,13 +7,12 @@ import edu.osu.lapis.Flags
 import edu.osu.sfal.messages.{SfApplicationResult, SfApplicationRequest}
 import scala.collection.JavaConversions.{mapAsJavaMap, setAsJavaSet}
 import edu.osu.sfal.messages.sfp.HeartbeatFailedMsg
-import edu.osu.lapis.Constants.SimulationFunction._
 
 
 class SfpActorTest extends SfalActorTestBase {
 
-  val ReadyToCalculate = READY_TO_CALCULATE_VAR_NAME
-  val FinishedCalculating = FINISHED_CALCULATING_VAR_NAME
+  val ReadyToCalculate = SfpActor.READY_TO_CALCULATE_VAR_NAME
+  val FinishedCalculating = SfpActor.FINISHED_CALCULATING_VAR_NAME
 
   class SfpActorTestFixture extends SfalActorTestFixture {
     SfpActor.setHeartbeatPeriodMillis(15)

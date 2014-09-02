@@ -20,8 +20,6 @@ import scala.concurrent.duration.FiniteDuration;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import static edu.osu.lapis.Constants.SimulationFunction.FINISHED_CALCULATING_VAR_NAME;
-import static edu.osu.lapis.Constants.SimulationFunction.READY_TO_CALCULATE_VAR_NAME;
 import static java.util.stream.Collectors.toMap;
 
 /**
@@ -34,6 +32,9 @@ public class SfpActor extends UntypedActor {
 	static Object
 			HEARTBEAT_MSG = "HEARTBEAT_MSG",
 			CHECK_ON_CALCULATION = "CHECK_ON_CALCULATION";
+
+	public static final String READY_TO_CALCULATE_VAR_NAME = "readyToCalculate";
+	public static final String FINISHED_CALCULATING_VAR_NAME = "finishedCalculating";
 
 	private static long heartbeatPeriodMillis = 15000;
 	private static long calculationCheckPeriodMillis = 1000;
