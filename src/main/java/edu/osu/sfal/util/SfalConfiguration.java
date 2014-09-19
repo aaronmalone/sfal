@@ -14,10 +14,8 @@ import edu.osu.sfal.messages.SfApplicationRequest;
 import edu.osu.sfal.messages.sfp.SfpStatusMessage;
 import edu.osu.sfal.rest.DataRestlet;
 import edu.osu.sfal.rest.IncomingRequestRestlet;
-import edu.osu.sfal.rest.JsonEntityPairsExtractor;
 import org.restlet.Restlet;
 import org.restlet.routing.Router;
-import org.restlet.routing.Validator;
 
 import java.io.IOException;
 import java.net.URI;
@@ -57,13 +55,7 @@ public class SfalConfiguration {
 		router.attach("/cache/{dataStoreKey}", dataRestlet);
 		MessageDispatcher<SfApplicationRequest> reqDispatcher = new ActorRefMessageDispatcher<>(genManagerActorRef);
 		Restlet requestRestlet = new IncomingRequestRestlet(sfalDao, reqDispatcher, requestCompletedTimeout);
-		Validator validator = new Validator();
-		validator.validatePresence("model");
-		validator.validatePresence("timestep");
-		validator.validatePresence("inputs");
-		validator.validatePresence("outputs");
-		validator.setNext(requestRestlet);
-		router.attach("/requests", new JsonEntityPairsExtractor(validator));
+		router.attach("/requests", requestRestlet);
 	}
 
 	private static String getProperty(Properties properties, String propertyName) {

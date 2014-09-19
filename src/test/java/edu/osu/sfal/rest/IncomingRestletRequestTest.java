@@ -47,8 +47,7 @@ public class IncomingRestletRequestTest {
 		SfalDao sfalDao = new SfalDaoInMemoryImpl();
 		sfalDao.save(DATA_STORE_KEY_FOR_INPUT, STORED_INPUT_VALUE);
 		IncomingRequestRestlet requestRestlet = new IncomingRequestRestlet(sfalDao, dispatcher, 10);
-		JsonEntityPairsExtractor extractor = new JsonEntityPairsExtractor(requestRestlet);
-		Response response = extractor.handle(getRequestWithJsonEntity());
+		Response response = requestRestlet.handle(getRequestWithJsonEntity());
 		Assert.assertTrue(response.getStatus().isSuccess());
 
 		//test all of the attributes of the SfApplicationRequest that was generated
@@ -76,8 +75,7 @@ public class IncomingRestletRequestTest {
 		};
 		SfalDao sfalDao = new SfalDaoInMemoryImpl();
 		IncomingRequestRestlet restlet = new IncomingRequestRestlet(sfalDao, dispatcher, 10);
-		JsonEntityPairsExtractor extractor = new JsonEntityPairsExtractor(restlet);
-		Response response = extractor.handle(getRequestWithJsonEntity());
+		Response response = restlet.handle(getRequestWithJsonEntity());
 		Assert.assertTrue(response.getStatus().isServerError());
 	}
 
