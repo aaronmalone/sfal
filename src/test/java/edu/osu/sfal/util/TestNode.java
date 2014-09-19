@@ -36,7 +36,7 @@ public class TestNode {
 		Object previousWeather = getPreviousWeather();
 		lapisApi.publish("previousWeather", previousWeather);
 		Object baseweather = previousWeather;
-		lapisApi.publishReadOnly("baseweather", baseweather);
+		lapisApi.publishReadOnly("baseWeather", baseweather);
 
 		int[] timestep = new int[1];
 		lapisApi.publish("timestep", timestep);

@@ -15,12 +15,21 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
+/**
+ * Actor to manage all SFPs. There should only be one per SFAL instance.
+ */
 public class SfpGeneralManager extends UntypedActor {
 
 	private final LoggingAdapter logger = Logging.getLogger(getContext().system(), this);
 
+	/**
+	 * Map of simulation function name to actor ref. for SfpPoolManager
+	 */
 	final Map<SimulationFunctionName, ActorRef> sfpPoolMap = new HashMap<>();
 
+	/**
+	 * The LAPIS client.
+	 */
 	private final LapisApi lapisApi;
 
 	public SfpGeneralManager(LapisApi lapisApi) {

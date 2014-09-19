@@ -21,7 +21,7 @@ public class CouchbaseDao implements SfalDao {
 
 	@Override
 	public void save(String key, Object value) {
-		logger.debug("Saving " + key);
+		logger.debug("Saving " + key + " value of type (" + value.getClass().getSimpleName() + ")");
 		couchbaseClient.set(key, value);
 	}
 }

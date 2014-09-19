@@ -2,7 +2,7 @@ package edu.osu.sfal.util;
 
 import com.google.common.base.Preconditions;
 
-public class StringKey {
+public class StringKey implements Comparable<StringKey> {
 
 	private final String name;
 	private final String toStringValue;
@@ -35,5 +35,10 @@ public class StringKey {
 	@Override
 	public String toString() {
 		return this.toStringValue;
+	}
+
+	@Override
+	public int compareTo(StringKey that) {
+		return this.name.compareTo(that.name);
 	}
 }

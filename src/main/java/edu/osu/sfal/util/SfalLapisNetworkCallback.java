@@ -58,7 +58,7 @@ public class SfalLapisNetworkCallback implements NetworkChangeCallback {
 			lapisApi.waitForReadyNode(nodeName, waitForNodeMillis);
 		} catch (TimeoutException e) {
 			logger.warn("Timed out while waiting for node " + lapisNode
-					+ " to become ready.", e);
+					+ " to become ready. Waited for " + waitForNodeMillis + " millis.", e);
 			throw new RuntimeException(e);
 		}
 	}
