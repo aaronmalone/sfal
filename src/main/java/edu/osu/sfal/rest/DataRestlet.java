@@ -8,9 +8,16 @@ import org.restlet.Request;
 import org.restlet.Response;
 import org.restlet.Restlet;
 import org.restlet.data.MediaType;
+import org.restlet.data.Status;
+import org.restlet.resource.ResourceException;
 
 import java.util.Map;
 
+import static edu.osu.sfal.rest.AttributeUtil.getAttribute;
+
+/**
+ * Restlet for serving requests for data in the persistent datastore.
+ */
 public class DataRestlet extends Restlet {
 
 	private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -37,12 +44,16 @@ public class DataRestlet extends Restlet {
 	}
 
 	private void returnAllData(Response response) {
-		SfalDaoInMemoryImpl inMemoryImpl = SfalDaoInMemoryImpl.class.cast(sfalDao);
-		Map<String, Object> mappings = inMemoryImpl.getAllMappings();
-		response.setEntity(gson.toJson(mappings), MediaType.APPLICATION_JSON);
+		if (sfalDao instanceof SfalDaoInMemoryImpl) {
+			SfalDaoInMemoryImpl inMemoryImpl = SfalDaoInMemoryImpl.class.cast(sfalDao);
+			Map<String, Object> mappings = inMemoryImpl.getAllMappings();
+			response.setEntity(gson.toJson(mappings), MediaType.APPLICATION_JSON);
+		} else {
+			throw new ResourceException(Status.CLIENT_ERROR_FORBIDDEN);
+		}
 	}
 
 	private String getKeyAttribute(Request request) {
-		return AttributeUtil.getAttribute(request, "dataStoreKey", String.class);
+		return getAttribute(request, "dataStoreKey", String.class);
 	}
 }
