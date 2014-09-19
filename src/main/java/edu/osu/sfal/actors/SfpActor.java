@@ -13,13 +13,14 @@ import edu.osu.sfal.messages.SfpNotBusy;
 import edu.osu.sfal.messages.sfp.HeartbeatFailedMsg;
 import edu.osu.sfal.util.SfpName;
 import edu.osu.sfal.util.SimulationFunctionName;
-import org.apache.commons.lang3.Validate;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.duration.FiniteDuration;
 
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import static edu.osu.sfal.messages.Messages.CHECK_ON_CALCULATION;
+import static edu.osu.sfal.messages.Messages.HEARTBEAT_MSG;
 import static java.util.stream.Collectors.toMap;
 
 /**
@@ -29,15 +30,11 @@ public class SfpActor extends UntypedActor {
 
 	private final LoggingAdapter logger = Logging.getLogger(getContext().system(), this);
 
-	static Object
-			HEARTBEAT_MSG = "HEARTBEAT_MSG",
-			CHECK_ON_CALCULATION = "CHECK_ON_CALCULATION";
-
 	public static final String READY_TO_CALCULATE_VAR_NAME = "readyToCalculate";
 	public static final String FINISHED_CALCULATING_VAR_NAME = "finishedCalculating";
 
 	private static long heartbeatPeriodMillis = 15000;
-	private static long calculationCheckPeriodMillis = 1000;
+	private static long calculationCheckPeriodMillis = 4900;
 
 	private final SimulationFunctionName simulationFunctionName;
 	private final SfpName sfpName;
@@ -96,33 +93,47 @@ public class SfpActor extends UntypedActor {
 		logger.info("Handling new SfApplicationRequest: {}", request);
 		validateSfpNotCurrentlyCalculating();
 		setCurrentRequest(request);
-		setInputVariablesAndTimeStepOnSfp(request.getInputs(), request.getTimestep());
+		setInputVariablesAndTimeStep();
 		setReadyToCalculateFlag();
 		scheduleCheckOnCalculation();
 	}
 
+	//TODO RE-ORDER MEMBERS
+
 	private void validateSfpNotCurrentlyCalculating() {
-		boolean readyToCalculateFlag = getFlag(READY_TO_CALCULATE_VAR_NAME);
-		boolean finishedCalculatingFlag = getFlag(FINISHED_CALCULATING_VAR_NAME);
-		String whenMessage = "when we tried to begin setting inputs";
-		Validate.isTrue(!readyToCalculateFlag, "'readyToCalculate' was set " + whenMessage);
-		Validate.isTrue(finishedCalculatingFlag, "'finishedCalculating' was not set " + whenMessage);
+		if (getFinishedCalculatingFlag() && !getReadyToCalculateFlag()) {
+			logger.debug("Node '{}' is not currently calculating ", getNodeName());
+		} else {
+			throw new IllegalStateException("Node " + getNodeName() + " appears to be running a calculation.");
+		}
+	}
+
+	private boolean getFinishedCalculatingFlag() {
+		return getFlag(FINISHED_CALCULATING_VAR_NAME);
+	}
+
+	private boolean getReadyToCalculateFlag() {
+		return getFlag(READY_TO_CALCULATE_VAR_NAME);
 	}
 
 	public void setCurrentRequest(SfApplicationRequest currentRequest) {
-		Validate.isTrue(this.currentRequest == null,
-				"current request should be null before receiving new request");
-		this.currentRequest = currentRequest;
+		if(this.currentRequest == null) {
+			this.currentRequest = currentRequest;
+		} else {
+			throw new IllegalStateException("current request should be null before processing new request");
+		}
 	}
 
-	private void setInputVariablesAndTimeStepOnSfp(Map<String, Object> inputs, int timestep) {
-		inputs.forEach(this::setIndividualInputVariable);
-		setIndividualInputVariable("timestep", new int[]{timestep});
+	private void setInputVariablesAndTimeStep() {
+		assert this.currentRequest != null;
+		int timestep = this.currentRequest.getTimestep();
+		setVariableOnNode("timestep", new int[]{timestep});
+		this.currentRequest.getInputs().forEach(this::setVariableOnNode);
 	}
 
-	private void setIndividualInputVariable(String variableName, Object value) {
+	private void setVariableOnNode(String variableName, Object value) {
 		try {
-			logger.debug("Setting input variable '{}' on node '{}'", variableName, getNodeName());
+			logger.debug("Setting variable '{}' on node '{}'", variableName, getNodeName());
 			lapisApi.set(getNodeName(), variableName, value);
 		} catch (Exception e) {
 			throw new RuntimeException("Exception while setting variable '"
@@ -131,8 +142,7 @@ public class SfpActor extends UntypedActor {
 	}
 
 	private void setReadyToCalculateFlag() {
-		logger.debug("Setting flag '{}' on node '{}'", READY_TO_CALCULATE_VAR_NAME, getNodeName());
-		lapisApi.set(getNodeName(), READY_TO_CALCULATE_VAR_NAME, Flags.getFlagTrue());
+		setVariableOnNode(READY_TO_CALCULATE_VAR_NAME, Flags.getFlagTrue());
 	}
 
 	private void scheduleCheckOnCalculation() {
@@ -140,9 +150,7 @@ public class SfpActor extends UntypedActor {
 	}
 
 	private void checkOnCalculation() {
-		boolean finishedCalculating = getFlag(FINISHED_CALCULATING_VAR_NAME);
-		//TODO WHY THIS CHECK?
-		if (finishedCalculating && !getFlag(READY_TO_CALCULATE_VAR_NAME)) {
+		if(getFinishedCalculatingFlag() && !getReadyToCalculateFlag()) {
 			handleFinishedCalculation();
 		} else {
 			scheduleCheckOnCalculation();
@@ -156,7 +164,7 @@ public class SfpActor extends UntypedActor {
 	 * the current request, and send a message to the SfpPoolManager.
 	 */
 	private void handleFinishedCalculation() {
-		logger.info("Handling completion of calculation for current request: {}", currentRequest);
+		logger.debug("Handling completion of calculation for current request: {}", currentRequest);
 		Map<String, Object> outputValues = getOutputValuesFromCurrentCalculation();
 		SfApplicationResult result = createsSfApplicationResultForCurrentCalculation(outputValues);
 		completeAndClearCurrentRequest(result);
@@ -193,11 +201,12 @@ public class SfpActor extends UntypedActor {
 
 	private void completeAndClearCurrentRequest(SfApplicationResult result) {
 		currentRequest.getCompletableFuture().complete(result);
-		logger.debug("Successfully completed request: {}", currentRequest);
+		logger.info("Successfully completed request: {}", currentRequest);
 		currentRequest = null;
 	}
 
 	private void doHeartbeatCheck() {
+		logger.debug("About to do heartbeat check for node '{}'...", getNodeName());
 		boolean nodeIsLive = lapisApi.doHeartbeatCheckReturnNodeIsLive(getNodeName());
 		if (nodeIsLive) {
 			scheduleHeartbeatCheck();
