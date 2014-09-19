@@ -98,22 +98,12 @@ public class SfpActor extends UntypedActor {
 		scheduleCheckOnCalculation();
 	}
 
-	//TODO RE-ORDER MEMBERS
-
 	private void validateSfpNotCurrentlyCalculating() {
 		if (getFinishedCalculatingFlag() && !getReadyToCalculateFlag()) {
 			logger.debug("Node '{}' is not currently calculating ", getNodeName());
 		} else {
 			throw new IllegalStateException("Node " + getNodeName() + " appears to be running a calculation.");
 		}
-	}
-
-	private boolean getFinishedCalculatingFlag() {
-		return getFlag(FINISHED_CALCULATING_VAR_NAME);
-	}
-
-	private boolean getReadyToCalculateFlag() {
-		return getFlag(READY_TO_CALCULATE_VAR_NAME);
 	}
 
 	public void setCurrentRequest(SfApplicationRequest currentRequest) {
@@ -131,6 +121,10 @@ public class SfpActor extends UntypedActor {
 		this.currentRequest.getInputs().forEach(this::setVariableOnNode);
 	}
 
+	private void setReadyToCalculateFlag() {
+		setVariableOnNode(READY_TO_CALCULATE_VAR_NAME, Flags.getFlagTrue());
+	}
+
 	private void setVariableOnNode(String variableName, Object value) {
 		try {
 			logger.debug("Setting variable '{}' on node '{}'", variableName, getNodeName());
@@ -139,10 +133,6 @@ public class SfpActor extends UntypedActor {
 			throw new RuntimeException("Exception while setting variable '"
 					+ variableName + "' on node '" + getNodeName() + "'", e);
 		}
-	}
-
-	private void setReadyToCalculateFlag() {
-		setVariableOnNode(READY_TO_CALCULATE_VAR_NAME, Flags.getFlagTrue());
 	}
 
 	private void scheduleCheckOnCalculation() {
@@ -205,6 +195,16 @@ public class SfpActor extends UntypedActor {
 		currentRequest = null;
 	}
 
+	/**
+	 * Sends a message to the parent (SfpPoolManager) indicating that this
+	 * SFP is not busy (not currently working on a calculation).
+	 */
+	private void sendNotBusyMessage() {
+		logger.debug("Sending not-busy message.");
+		SfpNotBusy sfpNotBusy = new SfpNotBusy(simulationFunctionName, sfpName);
+		this.getContext().parent().tell(sfpNotBusy, getSelf());
+	}
+
 	private void doHeartbeatCheck() {
 		logger.debug("About to do heartbeat check for node '{}'...", getNodeName());
 		boolean nodeIsLive = lapisApi.doHeartbeatCheckReturnNodeIsLive(getNodeName());
@@ -226,7 +226,6 @@ public class SfpActor extends UntypedActor {
 		}
 		logger.debug("Shutting down actor {}", getSelf());
 		getContext().stop(getSelf());
-		//TODO MAYBE THROW EXCEPTION...
 	}
 
 	private void scheduleOnce(long delayMillis, ActorRef destination, Object message) {
@@ -235,6 +234,14 @@ public class SfpActor extends UntypedActor {
 		ActorRef sender = getSelf();
 		getContext().system().scheduler()
 				.scheduleOnce(delay, destination, message, executionContext, sender);
+	}
+
+	private boolean getFinishedCalculatingFlag() {
+		return getFlag(FINISHED_CALCULATING_VAR_NAME);
+	}
+
+	private boolean getReadyToCalculateFlag() {
+		return getFlag(READY_TO_CALCULATE_VAR_NAME);
 	}
 
 	/**
@@ -254,16 +261,6 @@ public class SfpActor extends UntypedActor {
 	 */
 	private String getNodeName() {
 		return sfpName.getName();
-	}
-
-	/**
-	 * Sends a message to the parent (SfpPoolManager) indicating that this
-	 * SFP is not busy (not currently working on a calculation).
-	 */
-	private void sendNotBusyMessage() {
-		logger.debug("Sending not-busy message.");
-		SfpNotBusy sfpNotBusy = new SfpNotBusy(simulationFunctionName, sfpName);
-		this.getContext().parent().tell(sfpNotBusy, getSelf());
 	}
 
 	@VisibleForTesting
