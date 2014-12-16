@@ -37,13 +37,10 @@ public class IncomingRestletRequestTest {
 	public void testHandle() {
 		//the author apologizes for this ugly block of code
 		final AtomicReference<SfApplicationRequest> requestReference = new AtomicReference<>();
-		MessageDispatcher<SfApplicationRequest> dispatcher = new MessageDispatcher<SfApplicationRequest>() {
-			@Override
-			public void dispatch(SfApplicationRequest request) {
-				requestReference.set(request);
-				SfApplicationResult result = getResultCorrespondingToRequest(request);
-				request.getCompletableFuture().complete(result);
-			}
+		MessageDispatcher<SfApplicationRequest> dispatcher = request -> {
+			requestReference.set(request);
+			SfApplicationResult result = getResultCorrespondingToRequest(request);
+			request.getCompletableFuture().complete(result);
 		};
 		SfalDao sfalDao = new SfalDaoInMemoryImpl();
 		sfalDao.save(DATA_STORE_KEY_FOR_INPUT, STORED_INPUT_VALUE);
@@ -76,8 +73,12 @@ public class IncomingRestletRequestTest {
 		};
 		SfalDao sfalDao = new SfalDaoInMemoryImpl();
 		IncomingRequestRestlet restlet = new IncomingRequestRestlet(sfalDao, dispatcher, 10);
-		Response response = restlet.handle(getRequestWithJsonEntity());
-		Assert.assertTrue(response.getStatus().isServerError());
+		try {
+			Response response = restlet.handle(getRequestWithJsonEntity());
+			Assert.fail();
+		} catch (Exception e) {
+			//expected
+		}
 	}
 
 	private Request getRequestWithJsonEntity() {
