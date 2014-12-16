@@ -33,7 +33,10 @@ public class IncomingRequestRestlet extends Restlet {
 	private final MessageDispatcher<SfApplicationRequest> requestDispatcher;
 	private final long timeoutMillis;
 
-	public IncomingRequestRestlet(SfalDao sfalDao, MessageDispatcher<SfApplicationRequest> requestDispatcher, long timeoutMillis) {
+	public IncomingRequestRestlet(
+			SfalDao sfalDao,
+			MessageDispatcher<SfApplicationRequest> requestDispatcher,
+			long timeoutMillis) {
 		this.sfalDao = sfalDao;
 		this.requestDispatcher = requestDispatcher;
 		this.timeoutMillis = timeoutMillis;
@@ -55,7 +58,7 @@ public class IncomingRequestRestlet extends Restlet {
 
 	private void handleInternal(Request request, Response response) {
 		try {
-			JsonObject jsonObject = EntityUtil.getEntityJson(request.getEntity()).getAsJsonObject();
+			JsonObject jsonObject = EntityUtil.getEntityJson(request).getAsJsonObject();
 			RequestAndOutputMappings requestAndOutputMappings = getFromJson(jsonObject, sfalDao::lookup);
 			requestDispatcher.dispatch(requestAndOutputMappings.getSfApplicationRequest());
 			SfApplicationResult result = waitForResults(requestAndOutputMappings.getSfApplicationRequest());
