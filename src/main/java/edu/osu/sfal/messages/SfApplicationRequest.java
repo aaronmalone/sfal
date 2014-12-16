@@ -3,10 +3,12 @@ package edu.osu.sfal.messages;
 import edu.osu.sfal.data.InputValuesMap;
 import edu.osu.sfal.util.SimulationFunctionName;
 
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
+/**
+ * A request to run one execution of a simulation function.
+ */
 public class SfApplicationRequest {
 
 	private final SimulationFunctionName simulationFunctionName;
@@ -46,6 +48,9 @@ public class SfApplicationRequest {
 		return completableFuture;
 	}
 
+	/**
+	 * Set of output variables (published LAPIS variables).
+	 */
 	public Set<String> getOutputNames() {
 		return outputNames;
 	}
