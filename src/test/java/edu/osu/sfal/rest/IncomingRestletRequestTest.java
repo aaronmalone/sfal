@@ -2,6 +2,7 @@ package edu.osu.sfal.rest;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import edu.osu.sfal.data.OutputValuesMap;
 import edu.osu.sfal.data.SfalDao;
 import edu.osu.sfal.data.SfalDaoInMemoryImpl;
 import edu.osu.sfal.messages.SfApplicationRequest;
@@ -110,6 +111,6 @@ public class IncomingRestletRequestTest {
 		Map<String, Object> outputsNameToValueMap = new HashMap<>();
 		request.getOutputNames().forEach(name -> outputsNameToValueMap.put(name, OUTPUT_VALUE_FOR + name));
 		return new SfApplicationResult(request.getSimulationFunctionName(), request.getTimestep(),
-				outputsNameToValueMap, new SfpName(RandomStringUtils.randomAlphanumeric(8)));
+				OutputValuesMap.fromMap(outputsNameToValueMap), new SfpName(RandomStringUtils.randomAlphanumeric(8)));
 	}
 }

@@ -7,6 +7,7 @@ import edu.osu.lapis.Flags
 import edu.osu.sfal.messages.{Messages, SfApplicationResult, SfApplicationRequest}
 import scala.collection.JavaConversions.{mapAsJavaMap, setAsJavaSet}
 import edu.osu.sfal.messages.sfp.HeartbeatFailedMsg
+import edu.osu.sfal.data.InputValuesMap
 
 
 class SfpActorTest extends SfalActorTestBase {
@@ -31,8 +32,9 @@ class SfpActorTest extends SfalActorTestBase {
   new SfpActorTestFixture() {
 
     val inputsMap: Map[String, AnyRef] = Map("input1" -> "INPUT_VALUE1", "input2" -> "INPUT_VALUE_2")
+    val inputs = InputValuesMap.fromMap(inputsMap)
     val outputNamesSet = Set("output1")
-    val request = new SfApplicationRequest(simulationFunctionName, 0, inputsMap, outputNamesSet)
+    val request = new SfApplicationRequest(simulationFunctionName, 0, inputs, outputNamesSet)
 
     "When an SFP actor receives a request message, it " should {
       "save the request as the currentRequest member" in {
@@ -73,9 +75,8 @@ class SfpActorTest extends SfalActorTestBase {
   new SfpActorTestFixture() {
 
     val outputName = "outputName1"
-    val map: Map[String, AnyRef] = Map()
     val set: Set[String] = Set(outputName)
-    val request = new SfApplicationRequest(simulationFunctionName, 0, map, set)
+    val request = new SfApplicationRequest(simulationFunctionName, 0, new InputValuesMap, set)
 
     "When an SFP actor checks on a finished calculation, it" should {
       "retrieve the output values" in {
@@ -108,7 +109,7 @@ class SfpActorTest extends SfalActorTestBase {
 
   new SfpActorTestFixture() {
 
-    val request = new SfApplicationRequest(simulationFunctionName, 0, Map[String, Object](), Set[String]())
+    val request = new SfApplicationRequest(simulationFunctionName, 0, new InputValuesMap, Set[String]())
 
     "When an SFP actor receives a heartbeat message, it" should {
       "check whether the corresponding LAPIS node is alive" in {

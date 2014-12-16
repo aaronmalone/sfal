@@ -2,6 +2,7 @@ package edu.osu.sfal.rest;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import edu.osu.sfal.data.InputValuesMap;
 import edu.osu.sfal.messages.SfApplicationRequest;
 import edu.osu.sfal.util.SimulationFunctionName;
 import org.apache.commons.lang3.Validate;
@@ -35,7 +36,7 @@ public class RequestAndOutputMappings {
 	public static RequestAndOutputMappings getFromJson(JsonObject json, Function<String, Object> dataAccess) {
 		SimulationFunctionName simulationFunctionName = getSimulationFunctionName(json);
 		int timestep = getTimestep(json);
-		Map<String, Object> inputs = getInputs(json, dataAccess);
+		InputValuesMap inputs = getInputs(json, dataAccess);
 		Map<String, String> outputMappings = getOutputMappings(json);
 		SfApplicationRequest sfApplicationRequest = new SfApplicationRequest(simulationFunctionName,
 				timestep, inputs, outputMappings.keySet());
@@ -57,7 +58,7 @@ public class RequestAndOutputMappings {
 		return getProperty(json, "timestep").getAsNumber().intValue();
 	}
 
-	private static Map<String, Object> getInputs(JsonObject json, Function<String, Object> dataAccess) {
+	private static InputValuesMap getInputs(JsonObject json, Function<String, Object> dataAccess) {
 		JsonObject inputsJson = getProperty(json, "inputs").getAsJsonObject();
 		return getRequestInputs(inputsJson, dataAccess);
 	}
@@ -70,8 +71,8 @@ public class RequestAndOutputMappings {
 	 * <br>
 	 * Returns a map of the input names to the input data objects.
 	 */
-	private static Map<String, Object> getRequestInputs(JsonObject jsonObject, Function<String, Object> dataAccess) {
-		Map<String, Object> returnMap = new HashMap<>();
+	private static InputValuesMap getRequestInputs(JsonObject jsonObject, Function<String, Object> dataAccess) {
+		InputValuesMap returnMap = new InputValuesMap();
 		for (Map.Entry<String, JsonElement> entry : jsonObject.entrySet()) {
 			String inputName = entry.getKey();
 			String dataStoreKey = entry.getValue().getAsString();

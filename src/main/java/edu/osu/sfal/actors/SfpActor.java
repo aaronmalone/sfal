@@ -7,6 +7,7 @@ import akka.event.LoggingAdapter;
 import com.google.common.annotations.VisibleForTesting;
 import edu.osu.lapis.Flags;
 import edu.osu.lapis.LapisApi;
+import edu.osu.sfal.data.OutputValuesMap;
 import edu.osu.sfal.messages.SfApplicationRequest;
 import edu.osu.sfal.messages.SfApplicationResult;
 import edu.osu.sfal.messages.SfpNotBusy;
@@ -155,7 +156,7 @@ public class SfpActor extends UntypedActor {
 	 */
 	private void handleFinishedCalculation() {
 		logger.debug("Handling completion of calculation for current request: {}", currentRequest);
-		Map<String, Object> outputValues = getOutputValuesFromCurrentCalculation();
+		OutputValuesMap outputValues = getOutputValuesFromCurrentCalculation();
 		SfApplicationResult result = createsSfApplicationResultForCurrentCalculation(outputValues);
 		completeAndClearCurrentRequest(result);
 		sendNotBusyMessage();
@@ -166,11 +167,12 @@ public class SfpActor extends UntypedActor {
 	 * Returns a map from the published LAPIS variable names to the
 	 * corresponding values.
 	 */
-	private Map<String, Object> getOutputValuesFromCurrentCalculation() {
-		return currentRequest
+	private OutputValuesMap getOutputValuesFromCurrentCalculation() {
+		Map<String, Object> map = currentRequest
 				.getOutputNames()
 				.stream()
 				.collect(toMap(name -> name, this::getSingleOutputValue));
+		return OutputValuesMap.fromMap(map);
 	}
 
 	/**
@@ -185,7 +187,7 @@ public class SfpActor extends UntypedActor {
 		return value;
 	}
 
-	private SfApplicationResult createsSfApplicationResultForCurrentCalculation(Map<String, Object> outputValues) {
+	private SfApplicationResult createsSfApplicationResultForCurrentCalculation(OutputValuesMap outputValues) {
 		return new SfApplicationResult(simulationFunctionName, currentRequest.getTimestep(), outputValues, sfpName);
 	}
 

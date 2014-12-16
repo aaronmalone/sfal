@@ -7,6 +7,7 @@ import java.util.HashMap
 import edu.osu.sfal.messages.sfp.{HeartbeatFailedMsg, NewSfpMsg}
 import com.google.common.collect.Sets
 import edu.osu.sfal.util.SfpName
+import edu.osu.sfal.data.InputValuesMap
 
 class SfpPoolManagerTest extends SfalActorTestBase {
 
@@ -16,7 +17,7 @@ class SfpPoolManagerTest extends SfalActorTestBase {
     val testActorRef = TestActorRef.create[SfpPoolManager](system, props)
     val sfpPoolManager = testActorRef.underlyingActor
     val sfApplicationRequest = new SfApplicationRequest(simulationFunctionName, 0,
-      new HashMap(), Sets.newHashSet())
+      new InputValuesMap, Sets.newHashSet())
     val newSfp = new NewSfpMsg(simulationFunctionName, sfpName)
   }
 

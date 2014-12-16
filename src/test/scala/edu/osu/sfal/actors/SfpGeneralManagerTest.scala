@@ -7,6 +7,7 @@ import edu.osu.sfal.util.SfpName
 import edu.osu.sfal.messages.sfp.NewSfpMsg
 import java.util.HashMap
 import com.google.common.collect.Sets
+import edu.osu.sfal.data.InputValuesMap
 
 class SfpGeneralManagerTest extends SfalActorTestBase {
 
@@ -50,7 +51,7 @@ class SfpGeneralManagerTest extends SfalActorTestBase {
           mockFlagCall("readyToCalculate", false)
           mockFlagCall("finishedCalculating", true)
           testActorRef ! newSfp
-          val request = new SfApplicationRequest(simulationFunctionName, 0, new HashMap(), Sets.newHashSet())
+          val request = new SfApplicationRequest(simulationFunctionName, 0, new InputValuesMap, Sets.newHashSet())
           val testProbe = TestProbe()
           sfpGeneralManager.sfpPoolMap.put(simulationFunctionName, testProbe.ref)
           testActorRef ! request
