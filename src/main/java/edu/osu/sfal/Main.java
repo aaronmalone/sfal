@@ -1,15 +1,12 @@
 package edu.osu.sfal;
 
-import com.google.common.io.Files;
+import com.google.common.base.Preconditions;
+import edu.osu.sfal.util.PropertiesUtil;
 import edu.osu.sfal.util.SfalConfiguration;
-import org.apache.commons.lang3.Validate;
 import org.restlet.Component;
 import org.restlet.data.Protocol;
 import org.restlet.routing.Router;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.Properties;
 
 public class Main {
@@ -22,7 +19,8 @@ public class Main {
 	}
 
 	public static void main(String[] args) throws Exception {
-		Properties properties = getProperties(args);
+		Preconditions.checkArgument(args.length > 0, "Pass the name of a properties file.");
+		Properties properties = PropertiesUtil.getPropertiesFromResource(args[0]);
 		int port = getPort(properties);
 
 		SfalConfiguration sfalConfiguration = new SfalConfiguration(properties);
@@ -34,15 +32,6 @@ public class Main {
 		System.out.println("about to start...");
 		component.start();
 		System.out.println("started.");
-	}
-
-	private static Properties getProperties(String[] propertyFilesNames) throws IOException {
-		Validate.notEmpty(propertyFilesNames, "properties files names array is empty");
-		Properties properties = new Properties();
-		for (String propsFile : propertyFilesNames) {
-			properties.load(Files.newReader(new File(propsFile), Charset.defaultCharset()));
-		}
-		return properties;
 	}
 
 	private static int getPort(Properties properties) {
