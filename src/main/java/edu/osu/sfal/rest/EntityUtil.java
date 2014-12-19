@@ -2,6 +2,7 @@ package edu.osu.sfal.rest;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
 import org.restlet.Message;
 import org.restlet.data.Status;
 import org.restlet.representation.Representation;
@@ -23,6 +24,8 @@ public class EntityUtil {
 			return jsonParser.parse(reader);
 		} catch (IOException e) {
 			throw new ResourceException(Status.SERVER_ERROR_INTERNAL, e);
+		} catch (JsonSyntaxException e) {
+			throw new ResourceException(Status.CLIENT_ERROR_BAD_REQUEST, e);
 		}
 	}
 }
