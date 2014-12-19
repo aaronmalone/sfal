@@ -3,6 +3,7 @@ package edu.osu.sfal.rest;
 import com.google.common.base.Throwables;
 import edu.osu.sfal.data.OutputSaverUtil;
 import edu.osu.sfal.data.SfalDao;
+import edu.osu.sfal.exception.NoSfpAvailableException;
 import edu.osu.sfal.messages.SfApplicationRequest;
 import edu.osu.sfal.messages.SfApplicationResult;
 import edu.osu.sfal.util.MessageDispatcher;
@@ -43,8 +44,13 @@ public class IncomingRequestRestlet extends RequestRestletBase {
 		} catch (Exception e) {
 			Throwable cause = Throwables.getRootCause(e);
 			logger.warn("Exception while processing request.", e);
-			response.setStatus(Status.SERVER_ERROR_INTERNAL, cause);
-			response.setEntity("Exception while processing request: " + cause.getMessage(), MediaType.TEXT_PLAIN);
+			if (cause instanceof NoSfpAvailableException) {
+				response.setStatus(Status.CLIENT_ERROR_BAD_REQUEST, "No SFP available.");
+				response.setEntity("No SFP available to process request.", MediaType.TEXT_PLAIN);
+			} else {
+				response.setStatus(Status.SERVER_ERROR_INTERNAL, cause);
+				response.setEntity("Exception while processing request: " + cause.getMessage(), MediaType.TEXT_PLAIN);
+			}
 		}
 	}
 

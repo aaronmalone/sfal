@@ -6,6 +6,7 @@ import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import edu.osu.lapis.LapisApi;
+import edu.osu.sfal.exception.NoSfpAvailableException;
 import edu.osu.sfal.messages.SfApplicationRequest;
 import edu.osu.sfal.messages.sfp.NewSfpMsg;
 import edu.osu.sfal.util.SimulationFunctionName;
@@ -69,7 +70,7 @@ public class SfpGeneralManager extends UntypedActor {
 		} else {
 			CompletableFuture completableFuture = sfApplicationRequest.getCompletableFuture();
 			completableFuture.completeExceptionally(
-					new IllegalStateException("Received a request, but no SFP pool can handle it."));
+					new NoSfpAvailableException(sf, "Received a request, but no SFP pool can handle it."));
 		}
 	}
 
